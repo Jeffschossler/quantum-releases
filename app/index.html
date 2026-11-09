@@ -46,6 +46,11 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#0f172a;border:1px solid #334155;padding:10px 14px;border-radius:10px;font-size:13px;display:none;z-index:10;max-width:90%}
 .inicio{padding:40px 22px;text-align:center}.inicio h2{margin:12px 0 8px}.inicio p{color:var(--sub)}
 .sec{display:none}.sec.on{display:block}
+#gr{position:fixed;inset:0;background:var(--bg);z-index:8;display:none;flex-direction:column}#gr.on{display:flex}
+#gr header{position:static}#grVolta{background:none;border:0;color:var(--azul);font-size:22px;padding:0 6px 0 0;flex:none;width:auto}
+#grTit{display:flex;flex-direction:column;min-width:0}#grTit b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#grTit span{font-size:12px;color:var(--sub)}
+#grCv{flex:1;min-height:0;width:100%;touch-action:none;display:block}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
+#grInfo .op{padding:6px 0}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 </style>
 </head>
 <body>
@@ -69,6 +74,8 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
  </div>
 </main>
 <nav id="nav" style="display:none"><b class="on" data-s="hoje"><span>📊</span>Hoje</b><b data-s="autos"><span>🤖</span>Automações</b><b data-s="ops"><span>📋</span>Operações</b></nav>
+<div id="gr"><header><button id="grVolta" aria-label="Voltar">‹</button><div id="grTit"><b></b><span></span></div><span id="grAt" style="margin-left:auto;font-size:12px;color:var(--sub)"></span></header>
+ <div id="grSt"></div><canvas id="grCv"></canvas><div id="grInfo"></div></div>
 <div id="modal"><div><h3 id="mT"></h3><p id="mP"></p><div class="bts"><button class="b-pausa" id="mNao">Cancelar</button><button class="b-enc" id="mSim">Confirmar</button></div></div></div>
 <div id="toast"></div>
 <script>
@@ -119,7 +126,7 @@ function desenha() {
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
-   <button class="b-ops" data-o="${a.id}">📋 Operações de hoje desta automação (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div>`;
+   <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-graf" data-g="${a.id}">📈 Gráfico</button><button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
  }).join('') || '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>';
  $('bTodas').disabled = !autos.some(a => a.on);
  // operações
@@ -162,10 +169,11 @@ async function pede(acao, alvo, rot) {
  catch (e) { toast('Não foi possível: ' + e.message); }
 }
 document.addEventListener('click', e => {
- const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f]'); if (!t) return;
- const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o));
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g]'); if (!t) return;
+ const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
+ else if (t.dataset.g && a) grAbre(a);
  else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
  else if (t.dataset.f) { FILTRO = null; desenha(); }
  else if (t.dataset.l && a) confirma('Ligar "' + a.nome + '"?', 'Ela volta a abrir operações sozinha (' + a.sym + ', ' + a.tf + ' min).'
@@ -175,6 +183,107 @@ document.addEventListener('click', e => {
  else if (t.dataset.e && a) confirma('Encerrar "' + a.nome + '"?', 'Pausa a automação e ZERA a posição dela a mercado' + (a.conta === 'MT5' ? ' na conta MT5 (ordem real).' : ' (Simulação).'), () => pede('zerar', a.id, 'encerrando…'));
 });
 $('bTodas').onclick = () => confirma('Pausar todas?', 'Todas as automações param de abrir operações novas. As posições abertas continuam com stop e alvo.', () => pede('pausar_todas', null));
+// ---------- gráfico da automação (pedido do usuário em 9/11/2026) ----------
+// O celular pede "grafico"; a plataforma do PC monta os candles do dia, o indicador ORIGINAL da automação e as operações dela, e grava no
+// servidor; o celular lê (qt_grafico_ler). Atualiza a cada 30 s com o gráfico aberto. Um dedo arrasta, dois dedos dão zoom.
+const GR = {a: null, d: null, ult: null, tm: null, n: 60, fim: 0, pede: 0};
+function grAbre(a) {
+ GR.a = a; GR.d = null; GR.ult = null; $('gr').classList.add('on'); $('grTit').firstChild.textContent = a.nome; $('grTit').lastChild.textContent = `${a.estrategia} · ${a.sym} ${a.tf} min`;
+ $('grInfo').innerHTML = ''; $('grSt').textContent = '⏳ Pedindo o gráfico ao PC…'; grDesenha();
+ try { const c = JSON.parse(localStorage.getItem('qc_graf_' + a.id) || 'null'); if (c) { GR.d = c; grPrepara(); $('grSt').textContent = '⏳ Atualizando… (mostrando o último recebido)'; } } catch (e) {}
+ grPede(); clearInterval(GR.tm); GR.tm = setInterval(() => { if ($('gr').classList.contains('on')) grPede(); }, 30000);
+}
+$('grVolta').onclick = () => { $('gr').classList.remove('on'); clearInterval(GR.tm); GR.a = null; };
+async function grPede() {
+ const a = GR.a; if (!a) return; const meu = ++GR.pede;
+ let antes = null; try { const r = await rpc('qt_grafico_ler', {p_token: COD, p_alvo: a.id}); antes = r && r.atualizado; } catch (e) {}
+ try { await rpc('qt_comandar', {p_token: COD, p_acao: 'grafico', p_alvo: a.id}); }
+ catch (e) { $('grSt').textContent = '⚠ ' + (e.message || 'sem conexão'); return; }
+ for (let k = 0; k < 20 && meu === GR.pede && GR.a === a; k++) {
+  await new Promise(r => setTimeout(r, 1500));
+  try {
+   const r = await rpc('qt_grafico_ler', {p_token: COD, p_alvo: a.id});
+   if (r && r.atualizado !== antes) {
+    if (r.dados && r.dados.erro) { $('grSt').textContent = '⚠ ' + r.dados.erro; return; }
+    const novo = !GR.d; GR.d = r.dados; try { localStorage.setItem('qc_graf_' + a.id, JSON.stringify(r.dados)); } catch (e) {}
+    $('grSt').textContent = ''; $('grAt').textContent = 'atualizado ' + new Date(r.atualizado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+    grPrepara(novo); return;
+   }
+  } catch (e) {}
+ }
+ if (meu === GR.pede) $('grSt').textContent = '⚠ O PC não respondeu. A plataforma está aberta e com o envio para o celular ligado?';
+}
+function grPrepara(enquadra = true) {
+ const d = GR.d; if (!d) return;
+ if (enquadra || !GR.n) { GR.n = Math.max(25, Math.min(d.c.length - d.ini, 120)); GR.fim = d.c.length; }
+ const tot = d.ops.reduce((s, o) => s + o.pnl, 0), ab = d.aberta;
+ $('grInfo').innerHTML = `<div style="margin-bottom:6px"><b style="color:var(--txt)">${esc(d.ind.nome || 'Sem indicador próprio')}</b> · ${esc(d.dia)}</div>`
+  + (ab ? `<div style="margin-bottom:6px">Posição aberta: <b style="color:var(--txt)">${esc(ab.pos)}</b> a ${ab.e} · <span class="${cls(ab.aberto)}">${brl(ab.aberto)}</span></div>` : '')
+  + `<div>Operações: <b style="color:var(--txt)">${d.ops.length}</b> · Resultado: <b class="${cls(tot)}">${brl(tot)}</b></div>`
+  + d.ops.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span><div>${new Date(o.t0).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}→${new Date(o.t).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})} · ${o.e} → ${o.s} · ${esc(o.m)}</div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('');
+ grDesenha();
+}
+function grIdx(d, t) { const c = d.c; let a = 0, b = c.length - 1; if (t <= c[0][0]) return 0; if (t >= c[b][0]) return b; while (b - a > 1) { const m = (a + b) >> 1; if (c[m][0] <= t) a = m; else b = m; } return a; }
+function grDesenha() {
+ const cv = $('grCv'); if (!cv.clientWidth) return; const [g, w, h] = fit(cv); g.clearRect(0, 0, w, h);
+ const d = GR.d; if (!d || !d.c.length) return;
+ const AX = 54, BY = 18, cw = w - AX, ch = h - BY, n = Math.max(10, Math.min(GR.n, d.c.length)), fim = Math.max(n, Math.min(d.c.length + 5, GR.fim)), ini = Math.max(0, fim - n), z = cw / n;
+ const X = i => (i - ini + .5) * z, vis = d.c.slice(ini, Math.min(fim, d.c.length));
+ let hi = -Infinity, lo = Infinity; vis.forEach(k => { hi = Math.max(hi, k[2]); lo = Math.min(lo, k[3]); });
+ const inc = v => { if (v != null && isFinite(v)) { hi = Math.max(hi, v); lo = Math.min(lo, v); } };
+ (d.ind.niveis || []).forEach(x => inc(x.v)); d.ops.forEach(o => { if (o.t >= d.c[ini][0]) { inc(o.e); inc(o.s); } }); if (d.aberta) { inc(d.aberta.e); (d.aberta.sl || []).forEach(inc); (d.aberta.tp || []).forEach(inc); }
+ const pad = (hi - lo) * .06 || 1; hi += pad; lo -= pad; const Y = v => ch * (1 - (v - lo) / (hi - lo));
+ g.strokeStyle = '#1e293b'; g.lineWidth = 1; for (let j = 1; j < 5; j++) { const y = Math.round(ch * j / 5) + .5; g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); }
+ // separador do dia
+ if (d.ini > ini && d.ini < fim) { g.strokeStyle = '#334155'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(X(d.ini) - z / 2, 0); g.lineTo(X(d.ini) - z / 2, ch); g.stroke(); g.setLineDash([]); }
+ // níveis
+ g.font = '10px sans-serif'; (d.ind.niveis || []).forEach(nv => { if (nv.v == null) return; const y = Y(nv.v); g.strokeStyle = nv.cor; g.globalAlpha = .7; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = nv.cor; g.textAlign = 'left'; g.fillText(nv.rot, 4, y - 3); });
+ // candles
+ const bw = Math.max(1, z * .62), cores = d.ind.cores;
+ for (let i = ini; i < Math.min(fim, d.c.length); i++) {
+  const [, o, H, L, C] = d.c[i], x = X(i); let col = C >= o ? '#22c55e' : '#ef4444';
+  if (cores && cores[i] != null) col = cores[i] > 0 ? '#22c55e' : cores[i] < 0 ? '#ef4444' : '#facc15';
+  g.strokeStyle = g.fillStyle = col; g.beginPath(); g.moveTo(x, Y(H)); g.lineTo(x, Y(L)); g.stroke();
+  g.fillRect(x - bw / 2, Math.min(Y(o), Y(C)), bw, Math.max(1, Math.abs(Y(o) - Y(C))));
+ }
+ // linhas e pontos do indicador
+ (d.ind.linhas || []).forEach(ln => { g.strokeStyle = ln.cor; g.lineWidth = 1.6; g.setLineDash(ln.trac ? [4, 4] : []); g.beginPath(); let on = false;
+  for (let i = ini; i < Math.min(fim, ln.v.length); i++) { const v = ln.v[i]; if (v == null) { on = false; continue; } on ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)); on = true; } g.stroke(); g.setLineDash([]); });
+ (d.ind.pontos || []).forEach(pt => { for (let i = ini; i < Math.min(fim, pt.v.length); i++) { const v = pt.v[i]; if (v == null) continue; g.fillStyle = pt.tend ? (pt.tend[i] > 0 ? '#22c55e' : '#ef4444') : pt.cor; g.beginPath(); g.arc(X(i), Y(v), Math.max(1.5, Math.min(3, z * .18)), 0, 7); g.fill(); } });
+ (d.ind.marcas || []).forEach(m => { if (m.i < ini || m.i >= fim) return; const k = d.c[m.i], x = X(m.i), up = m.lado === 'C', y = up ? Y(k[3]) + 10 : Y(k[2]) - 10; g.fillStyle = up ? '#22c55e' : '#ef4444'; g.beginPath(); g.moveTo(x, up ? y - 6 : y + 6); g.lineTo(x - 5, up ? y + 4 : y - 4); g.lineTo(x + 5, up ? y + 4 : y - 4); g.closePath(); g.fill(); });
+ // operações da automação
+ d.ops.forEach(o => {
+  const i0 = grIdx(d, o.t0), i1 = grIdx(d, o.t); if (i1 < ini || i0 >= fim) return;
+  const x0 = X(i0), x1 = X(i1), y0 = Y(o.e), y1 = Y(o.s), cor = o.pnl >= 0 ? '#4ade80' : '#f87171';
+  g.strokeStyle = cor; g.setLineDash([4, 3]); g.lineWidth = 1.4; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.setLineDash([]);
+  const up = o.lado === 'C'; g.fillStyle = up ? '#38bdf8' : '#fb923c'; g.beginPath(); g.moveTo(x0, y0 + (up ? -7 : 7)); g.lineTo(x0 - 6, y0 + (up ? 4 : -4)); g.lineTo(x0 + 6, y0 + (up ? 4 : -4)); g.closePath(); g.fill();
+  g.fillStyle = cor; g.beginPath(); g.arc(x1, y1, 4, 0, 7); g.fill();
+  g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText((o.pnl >= 0 ? '+' : '') + Math.round(o.pnl), x1, y1 + (y1 < 14 ? 14 : -7));
+ });
+ if (d.aberta) { const ab = d.aberta, lh = (v, cor, rot) => { if (v == null) return; const y = Y(v); g.strokeStyle = cor; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.fillStyle = cor; g.textAlign = 'right'; g.font = 'bold 10px sans-serif'; g.fillText(rot, cw - 4, y - 3); };
+  lh(ab.e, '#e2e8f0', (ab.lado === 'C' ? 'COMPRADO ' : 'VENDIDO ') + ab.e); (ab.sl || []).forEach(v => lh(v, '#ef4444', 'STOP ' + v)); (ab.tp || []).forEach(v => lh(v, '#22c55e', 'ALVO ' + v)); }
+ // escalas
+ g.fillStyle = '#0b1220'; g.fillRect(cw, 0, AX, h); g.fillRect(0, ch, w, BY); g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'left';
+ for (let j = 0; j <= 5; j++) { const v = hi - (hi - lo) * j / 5, y = Math.min(ch - 6, Math.max(8, ch * j / 5)); g.fillText(v >= 1000 ? Math.round(v).toLocaleString('pt-BR') : v.toFixed(2), cw + 4, y + 3); }
+ const ult = d.c[d.c.length - 1]; if (d.c.length - 1 >= ini && d.c.length - 1 < fim) { const y = Y(ult[4]); g.fillStyle = '#38bdf8'; g.fillRect(cw, y - 8, AX, 16); g.fillStyle = '#0b1220'; g.font = 'bold 10px sans-serif'; g.fillText(ult[4] >= 1000 ? Math.round(ult[4]).toLocaleString('pt-BR') : ult[4].toFixed(2), cw + 4, y + 4); }
+ g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'center'; const passo = Math.max(1, Math.ceil(70 / z));
+ for (let i = ini; i < Math.min(fim, d.c.length); i += passo) g.fillText(new Date(d.c[i][0]).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), Math.min(cw - 16, Math.max(16, X(i))), ch + 12);
+}
+(function () {                                           // um dedo arrasta, dois dedos (ou a rodinha) dão zoom
+ const cv = $('grCv'); let t0 = null;
+ const pts = e => [...e.touches].map(t => t.clientX);
+ cv.addEventListener('touchstart', e => { const p = pts(e); t0 = {p, n: GR.n, fim: GR.fim, dist: p.length > 1 ? Math.abs(p[0] - p[1]) : 0}; }, {passive: true});
+ cv.addEventListener('touchmove', e => { if (!t0 || !GR.d) return; e.preventDefault(); const p = pts(e), z = cv.clientWidth / GR.n;
+  if (p.length > 1 && t0.dist) { GR.n = Math.max(15, Math.min(GR.d.c.length, Math.round(t0.n * t0.dist / Math.max(20, Math.abs(p[0] - p[1]))))); }
+  else { GR.fim = Math.max(GR.n, Math.min(GR.d.c.length + 5, Math.round(t0.fim - (p[0] - t0.p[0]) / z))); }
+  grDesenha(); }, {passive: false});
+ cv.addEventListener('touchend', () => { t0 = null; });
+ let md = null; cv.addEventListener('mousedown', e => { md = {x: e.clientX, fim: GR.fim}; });
+ addEventListener('mousemove', e => { if (!md || !GR.d) return; GR.fim = Math.max(GR.n, Math.min(GR.d.c.length + 5, Math.round(md.fim - (e.clientX - md.x) / (cv.clientWidth / GR.n)))); grDesenha(); });
+ addEventListener('mouseup', () => { md = null; });
+ cv.addEventListener('wheel', e => { if (!GR.d) return; e.preventDefault(); GR.n = Math.max(15, Math.min(GR.d.c.length, Math.round(GR.n * (e.deltaY > 0 ? 1.15 : 1 / 1.15)))); grDesenha(); }, {passive: false});
+ addEventListener('resize', () => { if ($('gr').classList.contains('on')) grDesenha(); });
+})();
 atualiza(); setInterval(atualiza, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) atualiza(); });
 </script>
