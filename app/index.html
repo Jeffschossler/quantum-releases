@@ -53,7 +53,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 #gr{position:fixed;inset:0;background:var(--bg);z-index:8;display:none;flex-direction:column}#gr.on{display:flex}
 #gr header{position:static}#grVolta{background:none;border:0;color:var(--azul);font-size:22px;padding:0 6px 0 0;flex:none;width:auto}
 #grTit{display:flex;flex-direction:column;min-width:0}#grTit b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#grTit span{font-size:12px;color:var(--sub)}
-#grCv{flex:1;min-height:0;width:100%;touch-action:none;display:block}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
+#grArea{flex:1;min-height:0;position:relative}#grCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}#grBts{position:absolute;left:8px;bottom:26px;display:flex;gap:6px;opacity:.9}#grBts button{background:rgba(15,23,42,.82);border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;width:auto;flex:none}#gr.sem-info #grInfo{display:none}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
 #grInfo .op{padding:6px 0}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 </style>
 </head>
@@ -79,7 +79,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 </main>
 <nav id="nav" style="display:none"><b class="on" data-s="hoje"><span>📊</span>Hoje</b><b data-s="autos"><span>🤖</span>Automações</b><b data-s="ops"><span>📋</span>Operações</b></nav>
 <div id="gr"><header><button id="grVolta" aria-label="Voltar">‹</button><div id="grTit"><b></b><span></span></div><span id="grAt" style="margin-left:auto;font-size:12px;color:var(--sub)"></span></header>
- <div id="grSt"></div><canvas id="grCv"></canvas><div id="grInfo"></div></div>
+ <div id="grSt"></div><div id="grArea"><canvas id="grCv"></canvas><div id="grBts"><button id="grAj" title="Ajustar o gráfico na tela">⟲ Ajustar</button><button id="grFim" title="Ir para o candle atual">≫</button><button id="grPain" title="Mostrar/esconder as operações">▾</button></div></div><div id="grInfo"></div></div>
 <div id="modal"><div><h3 id="mT"></h3><p id="mP"></p><div class="bts"><button class="b-pausa" id="mNao">Cancelar</button><button class="b-enc" id="mSim">Confirmar</button></div></div></div>
 <div id="toast"></div>
 <script>
@@ -222,7 +222,9 @@ async function grPede() {
 }
 function grPrepara(enquadra = true) {
  const d = GR.d; if (!d) return;
- if (enquadra || !GR.n) { GR.n = Math.max(25, Math.min(d.c.length - d.ini, 120)); GR.fim = d.c.length; }
+ if (enquadra || !GR.n) grEnquadra();
+ else if (GR.N && GR.fim >= GR.N - .5) GR.fim += d.c.length - GR.N;   // estava no fim: acompanha os candles novos
+ GR.N = d.c.length;
  const tot = d.ops.reduce((s, o) => s + o.pnl, 0), ab = d.aberta;
  $('grInfo').innerHTML = `<div style="margin-bottom:6px"><b style="color:var(--txt)">${esc(d.ind.nome || 'Sem indicador próprio')}</b> · ${esc(d.dia)}</div>`
   + (ab ? `<div style="margin-bottom:6px">Posição aberta: <b style="color:var(--txt)">${esc(ab.pos)}</b> a ${ab.e} · <span class="${cls(ab.aberto)}">${brl(ab.aberto)}</span></div>` : '')
@@ -234,12 +236,21 @@ function grIdx(d, t) { const c = d.c; let a = 0, b = c.length - 1; if (t <= c[0]
 function grDesenha() {
  const cv = $('grCv'); if (!cv.clientWidth) return; const [g, w, h] = fit(cv); g.clearRect(0, 0, w, h);
  const d = GR.d; if (!d || !d.c.length) return;
- const AX = 54, BY = 18, cw = w - AX, ch = h - BY, n = Math.max(10, Math.min(GR.n, d.c.length)), fim = Math.max(n, Math.min(d.c.length + 5, GR.fim)), ini = Math.max(0, fim - n), z = cw / n;
- const X = i => (i - ini + .5) * z, vis = d.c.slice(ini, Math.min(fim, d.c.length));
- let hi = -Infinity, lo = Infinity; vis.forEach(k => { hi = Math.max(hi, k[2]); lo = Math.min(lo, k[3]); });
+ const N = d.c.length, AX = 54, BY = 18, cw = w - AX, ch = h - BY;
+ GR.n = Math.max(8, Math.min(N + 40, GR.n || 60)); GR.fim = Math.max(Math.min(GR.n, N) * .25, Math.min(N + GR.n * .6, GR.fim ?? N));
+ const n = GR.n, fim = GR.fim, st = fim - n, z = cw / n, ini = Math.max(0, Math.floor(st));
+ const X = i => (i - st + .5) * z, vis = d.c.slice(ini, Math.min(Math.ceil(fim), N));
+ let hi = -Infinity, lo = Infinity; (vis.length ? vis : [d.c[N - 1]]).forEach(k => { hi = Math.max(hi, k[2]); lo = Math.min(lo, k[3]); });
  const inc = v => { if (v != null && isFinite(v)) { hi = Math.max(hi, v); lo = Math.min(lo, v); } };
- (d.ind.niveis || []).forEach(x => inc(x.v)); d.ops.forEach(o => { if (o.t >= d.c[ini][0]) { inc(o.e); inc(o.s); } }); if (d.aberta) { inc(d.aberta.e); (d.aberta.sl || []).forEach(inc); (d.aberta.tp || []).forEach(inc); }
- const pad = (hi - lo) * .06 || 1; hi += pad; lo -= pad; const Y = v => ch * (1 - (v - lo) / (hi - lo));
+ [...(d.ind.linhas || []), ...(d.ind.pontos || [])].forEach(ln => { for (let i = ini; i < Math.min(Math.ceil(fim), ln.v.length); i++) inc(ln.v[i]); });
+ // níveis e linhas da posição só entram na escala se estiverem perto: longe, espremiam os candles ("não se ajusta na tela")
+ const sp0 = (hi - lo) || 1, a0 = lo - sp0 * .4, b0 = hi + sp0 * .4, perto = v => { if (v != null && v > a0 && v < b0) inc(v); };
+ (d.ind.niveis || []).forEach(x => perto(x.v)); d.ops.forEach(o => { if (o.t >= d.c[ini][0]) { perto(o.e); perto(o.s); } }); if (d.aberta) { perto(d.aberta.e); (d.aberta.sl || []).forEach(perto); (d.aberta.tp || []).forEach(perto); }
+ const pad = (hi - lo) * .06 || 1; hi += pad; lo -= pad;
+ if (GR.man) { lo = GR.man.lo; hi = GR.man.hi; }                     // escala de preço mexida com os dedos (⟲ Ajustar volta ao automático)
+ GR.geo = {cw, ch, lo, hi};
+ const Y = v => ch * (1 - (v - lo) / (hi - lo));
+ g.save(); g.beginPath(); g.rect(0, 0, cw, ch); g.clip();
  g.strokeStyle = '#1e293b'; g.lineWidth = 1; for (let j = 1; j < 5; j++) { const y = Math.round(ch * j / 5) + .5; g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); }
  // separador do dia
  if (d.ini > ini && d.ini < fim) { g.strokeStyle = '#334155'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(X(d.ini) - z / 2, 0); g.lineTo(X(d.ini) - z / 2, ch); g.stroke(); g.setLineDash([]); }
@@ -269,6 +280,7 @@ function grDesenha() {
  });
  if (d.aberta) { const ab = d.aberta, lh = (v, cor, rot) => { if (v == null) return; const y = Y(v); g.strokeStyle = cor; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.fillStyle = cor; g.textAlign = 'right'; g.font = 'bold 10px sans-serif'; g.fillText(rot, cw - 4, y - 3); };
   lh(ab.e, '#e2e8f0', (ab.lado === 'C' ? 'COMPRADO ' : 'VENDIDO ') + ab.e); (ab.sl || []).forEach(v => lh(v, '#ef4444', 'STOP ' + v)); (ab.tp || []).forEach(v => lh(v, '#22c55e', 'ALVO ' + v)); }
+ g.restore();
  // escalas
  g.fillStyle = '#0b1220'; g.fillRect(cw, 0, AX, h); g.fillRect(0, ch, w, BY); g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'left';
  for (let j = 0; j <= 5; j++) { const v = hi - (hi - lo) * j / 5, y = Math.min(ch - 6, Math.max(8, ch * j / 5)); g.fillText(v >= 1000 ? Math.round(v).toLocaleString('pt-BR') : v.toFixed(2), cw + 4, y + 3); }
@@ -276,20 +288,60 @@ function grDesenha() {
  g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'center'; const passo = Math.max(1, Math.ceil(70 / z));
  for (let i = ini; i < Math.min(fim, d.c.length); i += passo) g.fillText(new Date(d.c[i][0]).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), Math.min(cw - 16, Math.max(16, X(i))), ch + 12);
 }
-(function () {                                           // um dedo arrasta, dois dedos (ou a rodinha) dão zoom
- const cv = $('grCv'); let t0 = null;
- const pts = e => [...e.touches].map(t => t.clientX);
- cv.addEventListener('touchstart', e => { const p = pts(e); t0 = {p, n: GR.n, fim: GR.fim, dist: p.length > 1 ? Math.abs(p[0] - p[1]) : 0}; }, {passive: true});
- cv.addEventListener('touchmove', e => { if (!t0 || !GR.d) return; e.preventDefault(); const p = pts(e), z = cv.clientWidth / GR.n;
-  if (p.length > 1 && t0.dist) { GR.n = Math.max(15, Math.min(GR.d.c.length, Math.round(t0.n * t0.dist / Math.max(20, Math.abs(p[0] - p[1]))))); }
-  else { GR.fim = Math.max(GR.n, Math.min(GR.d.c.length + 5, Math.round(t0.fim - (p[0] - t0.p[0]) / z))); }
-  grDesenha(); }, {passive: false});
- cv.addEventListener('touchend', () => { t0 = null; });
- let md = null; cv.addEventListener('mousedown', e => { md = {x: e.clientX, fim: GR.fim}; });
- addEventListener('mousemove', e => { if (!md || !GR.d) return; GR.fim = Math.max(GR.n, Math.min(GR.d.c.length + 5, Math.round(md.fim - (e.clientX - md.x) / (cv.clientWidth / GR.n)))); grDesenha(); });
- addEventListener('mouseup', () => { md = null; });
- cv.addEventListener('wheel', e => { if (!GR.d) return; e.preventDefault(); GR.n = Math.max(15, Math.min(GR.d.c.length, Math.round(GR.n * (e.deltaY > 0 ? 1.15 : 1 / 1.15)))); grDesenha(); }, {passive: false});
+function grEnquadra() { const d = GR.d; GR.man = null; if (!d) return; GR.n = Math.max(25, Math.min(d.c.length - d.ini, 120)); GR.fim = d.c.length + 2; }
+// Gestos como no gráfico do PC (pedido do usuário em 9/11/2026: "quero poder mexer igual ao gráfico no PC: zoom, pra cima, pra baixo,
+// pra trás, pra frente"): 1 dedo arrasta para os lados e para cima/baixo; pinça na horizontal = zoom do tempo, na vertical = zoom do
+// preço (os dois na diagonal), centrada nos dedos; arrastar a escala de preço (direita) estica/encolhe; a de tempo (embaixo) dá zoom;
+// duplo toque ou ⟲ Ajustar = enquadra de novo; ≫ = vai para o candle atual.
+(function () {
+ const cv = $('grCv'); let t0 = null, toque = {t: 0, x: 0, y: 0};
+ const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+ const pos = list => { const r = cv.getBoundingClientRect(); return [...list].map(t => ({x: t.clientX - r.left, y: t.clientY - r.top})); };
+ const comeca = ps => { const G = GR.geo; if (!G || !GR.d) { t0 = null; return; }
+  const s = {ps, n: GR.n, fim: GR.fim, lo: G.lo, hi: G.hi, cw: G.cw, ch: G.ch, vert: false};
+  s.zona = ps.length > 1 ? 'pinca' : ps[0].x > G.cw ? 'preco' : ps[0].y > G.ch ? 'tempo' : 'graf';
+  if (ps.length > 1) { s.dx = Math.abs(ps[0].x - ps[1].x); s.dy = Math.abs(ps[0].y - ps[1].y); s.mx = (ps[0].x + ps[1].x) / 2; s.my = (ps[0].y + ps[1].y) / 2; }
+  t0 = s; };
+ const mexe = ps => { const s = t0; if (!s || !GR.d || !ps.length) return;
+  const zx = s.cw / s.n, ppx = (s.hi - s.lo) / s.ch, N = GR.d.c.length;
+  if (s.zona === 'graf' && ps.length === 1) {
+   const dx = ps[0].x - s.ps[0].x, dy = ps[0].y - s.ps[0].y;
+   GR.fim = s.fim - dx / zx;
+   if (s.vert || Math.abs(dy) > 12) { s.vert = true; GR.man = {lo: s.lo + dy * ppx, hi: s.hi + dy * ppx}; }   // pra cima / pra baixo
+  } else if (s.zona === 'preco' && ps.length === 1) {
+   const k = Math.exp((ps[0].y - s.ps[0].y) / 160), c = (s.lo + s.hi) / 2, sp = (s.hi - s.lo) * k; GR.man = {lo: c - sp / 2, hi: c + sp / 2};
+  } else if (s.zona === 'tempo' && ps.length === 1) {
+   GR.n = cl(s.n * Math.exp(-(ps[0].x - s.ps[0].x) / 160), 8, N + 40);
+  } else if (ps.length > 1 && s.zona === 'pinca') {
+   const dx = Math.abs(ps[0].x - ps[1].x), dy = Math.abs(ps[0].y - ps[1].y), mx = (ps[0].x + ps[1].x) / 2, my = (ps[0].y + ps[1].y) / 2;
+   const iM = s.fim - s.n + s.mx / zx;                                   // o candle que estava no meio dos dedos continua no meio dos dedos
+   GR.n = s.dx > 30 ? cl(s.n * s.dx / Math.max(15, dx), 8, N + 40) : s.n;
+   GR.fim = iM + GR.n - mx / (s.cw / GR.n);
+   const pM = s.hi - s.my * ppx;                                         // o preço que estava no meio dos dedos
+   if (s.dy > 30) { const sp = (s.hi - s.lo) * s.dy / Math.max(15, dy), hi = pM + my * sp / s.ch; GR.man = {lo: hi - sp, hi}; }
+   else if (s.vert || Math.abs(my - s.my) > 12) { s.vert = true; GR.man = {lo: s.lo + (my - s.my) * ppx, hi: s.hi + (my - s.my) * ppx}; }
+  }
+  grDesenha(); };
+ cv.addEventListener('touchstart', e => { const ps = pos(e.touches); comeca(ps);
+  if (e.touches.length === 1) { const agora = Date.now();
+   if (agora - toque.t < 320 && Math.hypot(ps[0].x - toque.x, ps[0].y - toque.y) < 30) { grEnquadra(); grDesenha(); t0 = null; toque.t = 0; return; }
+   toque = {t: agora, x: ps[0].x, y: ps[0].y}; } }, {passive: true});
+ cv.addEventListener('touchmove', e => { e.preventDefault(); mexe(pos(e.touches)); }, {passive: false});
+ cv.addEventListener('touchend', e => { if (e.touches.length) comeca(pos(e.touches)); else t0 = null; });   // tirou um dedo: continua com o outro
+ cv.addEventListener('touchcancel', () => { t0 = null; });
+ let md = false; cv.addEventListener('mousedown', e => { md = true; comeca(pos([e])); });
+ addEventListener('mousemove', e => { if (md) mexe(pos([e])); });
+ addEventListener('mouseup', () => { md = false; t0 = null; });
+ cv.addEventListener('dblclick', () => { grEnquadra(); grDesenha(); });
+ cv.addEventListener('wheel', e => { const G = GR.geo; if (!GR.d || !G) return; e.preventDefault(); const [p] = pos([e]), z = G.cw / GR.n, iM = GR.fim - GR.n + p.x / z;
+  GR.n = cl(GR.n * (e.deltaY > 0 ? 1.15 : 1 / 1.15), 8, GR.d.c.length + 40); GR.fim = iM + GR.n - p.x / (G.cw / GR.n); grDesenha(); }, {passive: false});
+ $('grAj').onclick = () => { grEnquadra(); grDesenha(); };
+ $('grFim').onclick = () => { if (GR.d) { GR.fim = GR.d.c.length + 2; grDesenha(); } };
+ const info = on => { $('gr').classList.toggle('sem-info', !on); $('grPain').textContent = on ? '▾' : '▴'; try { localStorage.setItem('qc_gr_info', on ? '1' : '0'); } catch (e) {} grDesenha(); };
+ $('grPain').onclick = () => info($('gr').classList.contains('sem-info'));
+ try { if (localStorage.getItem('qc_gr_info') === '0') info(false); } catch (e) {}
  addEventListener('resize', () => { if ($('gr').classList.contains('on')) grDesenha(); });
+ if (window.ResizeObserver) new ResizeObserver(() => { if ($('gr').classList.contains('on')) grDesenha(); }).observe(cv);   // girou o celular, painel abriu/fechou
 })();
 atualiza(); setInterval(atualiza, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) atualiza(); });
