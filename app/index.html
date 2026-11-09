@@ -27,6 +27,10 @@ main{padding:14px 16px;max-width:720px;margin:0 auto}
 canvas{width:100%;height:190px;display:block}
 .auto{display:grid;grid-template-columns:1fr auto;gap:4px 10px}.auto h3{margin:0;font-size:16px}.auto .sub{font-size:12.5px;color:var(--sub)}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-right:4px}
+.t-stop{background:#450a0a;color:#fca5a5}.t-meta{background:#052e1a;color:#86efac}
+.card.auto.fim-vermelho{border-color:rgba(239,68,68,.55);background:linear-gradient(90deg,rgba(239,68,68,.16),rgba(239,68,68,.05));box-shadow:inset 4px 0 #ef4444}
+.card.auto.fim-verde{border-color:rgba(34,197,94,.55);background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(34,197,94,.04));box-shadow:inset 4px 0 #22c55e}
+.fimtxt{font-size:12px;margin-top:5px}.fim-vermelho .fimtxt{color:#fca5a5}.fim-verde .fimtxt{color:#86efac}
 .t-run{background:#052e1a;color:#4ade80}.t-off{background:#1f2937;color:#9ca3af}.t-wait{background:#3a2e05;color:#fde047}.t-sim{background:#0c2a43;color:#7dd3fc}.t-mt5{background:#3b0d0d;color:#fca5a5}
 .vals{text-align:right;font-size:13px;color:var(--sub)}.vals b{font-size:17px;display:block}
 .bts{grid-column:1/3;display:flex;gap:8px;margin-top:8px}
@@ -120,9 +124,11 @@ function desenha() {
  // automações
  const ord = autos.slice().sort((a, b) => (b.on - a.on) || (a.nome || '').localeCompare(b.nome || ''));
  $('listaAutos').innerHTML = ord.map(a => {
-  const est = !a.on ? '<span class="tag t-off">■ Parada</span>' : /^rodando/i.test(a.estado) ? '<span class="tag t-run">● Rodando</span>' : `<span class="tag t-wait">${esc((a.estado || 'ligada').split('(')[0].slice(0, 40))}</span>`;
+  // desligou por limite do dia (9/11/2026): vermelho = perda / perdas seguidas; verde = meta (nº de operações: pela cor do resultado)
+  const fim = !a.on && a.fim ? a.fim : null;
+  const est = fim ? (fim.cor === 'verde' ? '<span class="tag t-meta">✓ Meta do dia</span>' : '<span class="tag t-stop">⛔ Stop do dia</span>') : !a.on ? '<span class="tag t-off">■ Parada</span>' : /^rodando/i.test(a.estado) ? '<span class="tag t-run">● Rodando</span>' : `<span class="tag t-wait">${esc((a.estado || 'ligada').split('(')[0].slice(0, 40))}</span>`;
   const pend = ESPERA[a.id];
-  return `<div class="card auto"><div><h3>${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)}m</div><div style="margin-top:6px">${est}<span class="tag ${a.conta === 'MT5' ? 't-mt5' : 't-sim'}">${a.conta === 'MT5' ? 'MT5' : 'Simulação'}</span></div></div>
+  return `<div class="card auto${fim ? ' fim-' + fim.cor : ''}"><div><h3>${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)}m</div><div style="margin-top:6px">${est}<span class="tag ${a.conta === 'MT5' ? 't-mt5' : 't-sim'}">${a.conta === 'MT5' ? 'MT5' : 'Simulação'}</span></div>${fim ? `<div class="fimtxt">Desligada: ${esc(fim.txt)}</div>` : ''}</div>
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
@@ -158,7 +164,8 @@ function barras(autos) {
  if (!lst.length) { g.fillStyle = '#64748b'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillText('Nenhuma automação operou hoje', w / 2, h / 2); return; }
  const mx = Math.max(...lst.map(a => Math.abs(a.dia)), 1), meio = w * .55, larg = w * .43;
  lst.forEach((a, i) => { const y = 6 + i * 30, v = a.dia, bw = Math.abs(v) / mx * (larg - 70);
-  g.fillStyle = '#cbd5e1'; g.font = '12px sans-serif'; g.textAlign = 'right'; g.fillText((a.nome || '').slice(0, 26), meio - 8, y + 15);
+  const fim = !a.on && a.fim;                                      // limite do dia: ⛔ vermelho / ✓ verde antes do nome
+  g.fillStyle = fim ? (fim.cor === 'verde' ? '#86efac' : '#fca5a5') : '#cbd5e1'; g.font = '12px sans-serif'; g.textAlign = 'right'; g.fillText((fim ? (fim.cor === 'verde' ? '✓ ' : '⛔ ') : '') + (a.nome || '').slice(0, 26), meio - 8, y + 15);
   g.fillStyle = v >= 0 ? '#22c55e' : '#ef4444'; g.fillRect(meio, y + 4, Math.max(2, bw), 16);
   g.fillStyle = v >= 0 ? '#4ade80' : '#f87171'; g.textAlign = 'left'; g.fillText(brl(v), meio + Math.max(2, bw) + 6, y + 16); });
 }
