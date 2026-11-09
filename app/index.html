@@ -31,7 +31,8 @@ canvas{width:100%;height:190px;display:block}
 .vals{text-align:right;font-size:13px;color:var(--sub)}.vals b{font-size:17px;display:block}
 .bts{grid-column:1/3;display:flex;gap:8px;margin-top:8px}
 button{font:inherit;border:0;border-radius:10px;padding:11px 12px;font-weight:700;cursor:pointer;flex:1}
-.b-pausa{background:#1e293b;color:var(--txt);border:1px solid #334155}.b-enc{background:#7f1d1d;color:#fecaca}.b-todas{background:#1e293b;color:var(--amar);border:1px solid #475569;width:100%}
+.b-pausa{background:#1e293b;color:var(--txt);border:1px solid #334155}.b-liga{background:#065f46;color:#d1fae5}.b-ops{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;flex:none;font-size:13px}
+.filtro{display:flex;align-items:center;justify-content:space-between;background:#0c2a43;color:#bae6fd;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px}.filtro b{cursor:pointer;padding:0 4px}.b-enc{background:#7f1d1d;color:#fecaca}.b-todas{background:#1e293b;color:var(--amar);border:1px solid #475569;width:100%}
 button:disabled{opacity:.45}
 .op{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--borda);font-size:13.5px}.op:last-child{border:0}
 .lado{font-weight:800;font-size:12px;padding:3px 7px;border-radius:6px;align-self:start}.lado.C{background:#0c2a43;color:#7dd3fc}.lado.V{background:#3a1d05;color:#fdba74}
@@ -75,7 +76,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 // O código secreto vem do QR code (#c=...), fica só neste celular (localStorage) e é o que dá acesso. Chave abaixo = pública.
 const SRV = 'https://oinnymfgcfqryhlilgrh.supabase.co/rest/v1/rpc/', CHAVE = 'sb_publishable_zoIUVayLtlF6laeImPxFMQ_SXT2s9UJ';
 const $ = id => document.getElementById(id);
-let COD = null, D = null, ULT = null, ABA = 'hoje', ESPERA = {};
+let COD = null, D = null, ULT = null, ABA = 'hoje', ESPERA = {}, FILTRO = null;   // FILTRO: id da automação na aba Operações
 try { const m = /[#&]c=([^&]+)/.exec(location.hash); if (m) { localStorage.setItem('qc_codigo', decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname); } COD = localStorage.getItem('qc_codigo'); } catch (e) {}
 const rpc = (f, corpo) => fetch(SRV + f, {method: 'POST', headers: {apikey: CHAVE, 'Content-Type': 'application/json'}, body: JSON.stringify(corpo)})
  .then(async r => { const t = await r.text(); if (!r.ok) throw new Error((JSON.parse(t || '{}').message) || r.status); return t ? JSON.parse(t) : null; });
@@ -98,6 +99,8 @@ function desenha() {
  const atraso = (new Date(ULT.agora) - new Date(ULT.atualizado)) / 1000, on = atraso < 30;
  $('st').className = on ? 'on' : 'off'; $('st').lastChild.textContent = on ? 'PC ao vivo' : 'PC offline · ' + new Date(ULT.atualizado).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
  $('avisoPc').innerHTML = on ? '' : `<div class="aviso">⚠ A plataforma do PC não manda dados há ${atraso > 3600 ? Math.round(atraso / 3600) + ' h' : Math.round(atraso / 60) + ' min'}. Os valores abaixo são do último envio. Pedidos só são feitos com o PC ligado e a plataforma aberta.</div>`;
+ // pedidos já feitos pelo PC: tira o "⏳" ANTES de desenhar os cartões
+ (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast('✔ ' + (c.resultado || 'feito').replace(/^ok: /, '')); } });
  const autos = D.autos || [], ops = (D.hoje || []).slice().sort((a, b) => a.t - b.t);
  const dia = autos.reduce((s, a) => s + (a.dia || 0), 0), aberto = autos.reduce((s, a) => s + (a.aberto || 0), 0), ganhos = ops.filter(o => o.pnl > 0).length;
  $('hDia').textContent = brl(dia); $('hDia').className = 'big ' + cls(dia);
@@ -114,15 +117,16 @@ function desenha() {
   const pend = ESPERA[a.id];
   return `<div class="card auto"><div><h3>${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)}m</div><div style="margin-top:6px">${est}<span class="tag ${a.conta === 'MT5' ? 't-mt5' : 't-sim'}">${a.conta === 'MT5' ? 'MT5' : 'Simulação'}</span></div></div>
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
-   <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : `<button class="b-pausa" data-p="${a.id}" ${a.on ? '' : 'disabled'}>⏸ Pausar</button><button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`}</div></div>`;
+   <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
+    + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
+   <button class="b-ops" data-o="${a.id}">📋 Operações de hoje desta automação (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div>`;
  }).join('') || '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>';
  $('bTodas').disabled = !autos.some(a => a.on);
  // operações
- $('listaOps').innerHTML = ops.length ? ops.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span>
+ const fa = FILTRO != null && autos.find(a => a.id === FILTRO), opsF = fa ? ops.filter(o => o.id === FILTRO) : ops;
+ $('listaOps').innerHTML = (fa ? `<div class="filtro">Só: ${esc(fa.nome)} · ${brl(opsF.reduce((s, o) => s + o.pnl, 0))}<b data-f="1">✕</b></div>` : '') + (opsF.length ? opsF.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span>
    <div><b>${esc(o.nome)}</b><div style="color:var(--sub);font-size:12.5px">${esc(o.sym)} · ${o.qtd} · ${hora(o.t0 || o.t)}→${hora(o.t)} · ${esc(o.motivo)}</div></div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('')
-  : '<div class="vazio">Nenhuma operação encerrada hoje.</div>';
- // pedidos concluídos
- (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast('✔ ' + (c.resultado || 'feito').replace(/^ok: /, '')); } });
+  : `<div class="vazio">Nenhuma operação encerrada hoje${fa ? ' por esta automação' : ''}.</div>`);
 }
 function fit(cv) { const r = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; cv.width = w * r; cv.height = h * r; const g = cv.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); return [g, w, h]; }
 function curva(ops) {
@@ -158,9 +162,15 @@ async function pede(acao, alvo, rot) {
  catch (e) { toast('Não foi possível: ' + e.message); }
 }
 document.addEventListener('click', e => {
- const t = e.target.closest('[data-p],[data-e],[data-s]'); if (!t) return;
- const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e));
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f]'); if (!t) return;
+ const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o));
+ const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
+ else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
+ else if (t.dataset.f) { FILTRO = null; desenha(); }
+ else if (t.dataset.l && a) confirma('Ligar "' + a.nome + '"?', 'Ela volta a abrir operações sozinha (' + a.sym + ', ' + a.tf + ' min).'
+   + (a.conta === 'MT5' ? ' ATENÇÃO: conta MT5 — as ordens são REAIS.' : ' Conta: Simulação.')
+   + (a.saida ? '' : ' ⚠ Esta automação NÃO tem stop nem alvo configurados.'), () => pede('ligar', a.id, 'ligando…'));
  else if (t.dataset.p && a) confirma('Pausar "' + a.nome + '"?', 'Ela para de abrir operações novas. Uma posição aberta continua com o stop e o alvo.', () => pede('pausar', a.id, 'pausando…'));
  else if (t.dataset.e && a) confirma('Encerrar "' + a.nome + '"?', 'Pausa a automação e ZERA a posição dela a mercado' + (a.conta === 'MT5' ? ' na conta MT5 (ordem real).' : ' (Simulação).'), () => pede('zerar', a.id, 'encerrando…'));
 });
