@@ -54,6 +54,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 #gr header{position:static}#grVolta{background:none;border:0;color:var(--azul);font-size:22px;padding:0 6px 0 0;flex:none;width:auto}
 #grTit{display:flex;flex-direction:column;min-width:0}#grTit b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#grTit span{font-size:12px;color:var(--sub)}
 #grArea{flex:1;min-height:0;position:relative}#grCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}#grBts{position:absolute;left:8px;bottom:26px;display:flex;gap:6px;opacity:.9}#grBts button{background:rgba(15,23,42,.82);border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;width:auto;flex:none}#gr.sem-info #grInfo{display:none}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
+.lin-at{display:grid;grid-template-columns:52px 1fr auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13px}.lin-at:last-child{border:0}.lin-at span{color:var(--sub);font-size:12px}
 #grInfo .op{padding:6px 0}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 </style>
 </head>
@@ -69,6 +70,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
   <section class="sec on" id="s-hoje">
    <div class="card"><div class="lbl">Resultado do dia · automações</div><div class="big" id="hDia">–</div>
     <div class="grid"><div><span class="lbl">Aberto</span><b id="hAberto">–</b></div><div><span class="lbl">Operações</span><b id="hOps">–</b></div><div><span class="lbl">Acerto</span><b id="hAcerto">–</b></div></div></div>
+   <div class="card" id="cAtivo" style="display:none"><div class="lbl">Por ativo (hoje)</div><div id="hAtivo"></div></div>
    <div class="card"><div class="lbl">Curva do dia</div><canvas id="curva"></canvas></div>
    <div class="card"><div class="lbl">Por automação (hoje)</div><canvas id="barras"></canvas></div>
    <div class="card" id="cConta"></div>
@@ -120,7 +122,7 @@ function desenha() {
  const c = D.conta, m = D.manual || {};
  $('cConta').innerHTML = `<div class="lbl">Conta e operações manuais</div>` + (c ? `<div style="margin-top:6px">MT5 ${esc(c.login)}${c.demo ? ' (demo)' : ''} · Saldo <b>${esc(c.moeda)} ${Number(c.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b> · Patrimônio <b>${Number(c.patrimonio).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b></div>` : '<div class="sub" style="margin-top:6px;color:var(--sub)">MT5 desconectado</div>')
   + `<div style="margin-top:6px">Manual hoje: Simulação <b class="${cls(m.sim)}">${brl(m.sim || 0)}</b>${m.mt5 != null ? ` · MT5 <b class="${cls(m.mt5)}">${brl(m.mt5)}</b>` : ''}</div>`;
- curva(ops); barras(autos);
+ curva(ops); barras(autos); porAtivo(autos);
  // automações
  const ord = autos.slice().sort((a, b) => (b.on - a.on) || (a.nome || '').localeCompare(b.nome || ''));
  $('listaAutos').innerHTML = ord.map(a => {
@@ -156,6 +158,14 @@ function curva(ops) {
  });
  g.fillStyle = '#94a3b8'; g.font = '11px sans-serif'; g.textAlign = 'left'; g.fillText(hora(t0), 4, h - 4); g.textAlign = 'right'; g.fillText(hora(t1), w - 4, h - 4);
  g.fillText(brl(acc), w - 4, 12);
+}
+// resultado do dia por ativo (pedido do usuário em 9/11/2026: automações no WIN e no WDO, "o resultado do dia e separado por ativo")
+function porAtivo(autos) {
+ const raiz = s => { const m = /^([A-Z]{3,})[FGHJKMNQUVXZ]\d{2}/i.exec(String(s || '')); return (m ? m[1] : String(s || '?').split(/[^A-Za-z0-9]/)[0].replace(/(?<=[A-Z0-9])[a-z]+$/, '')).toUpperCase(); };
+ const g = {}; (autos || []).forEach(a => { const r = raiz(a.sym), x = g[r] || (g[r] = {r, dia: 0, ab: 0, ops: 0, n: 0, on: 0}); x.dia += +a.dia || 0; x.ab += +a.aberto || 0; x.ops += +a.ops || 0; x.n++; if (a.on) x.on++; });
+ const l = Object.values(g).sort((a, b) => a.r.localeCompare(b.r));
+ $('cAtivo').style.display = l.length > 1 ? '' : 'none';
+ $('hAtivo').innerHTML = l.map(x => `<div class="lin-at"><b>${esc(x.r)}</b><span>${x.on}/${x.n} ligadas · ${x.ops} op.</span><span>aberto <b class="${cls(x.ab)}">${brl(x.ab)}</b></span><b class="${cls(x.dia)}">${brl(x.dia)}</b></div>`).join('');
 }
 function barras(autos) {
  const cv = $('barras'), lst = autos.filter(a => a.dia || a.ops).sort((a, b) => b.dia - a.dia);
