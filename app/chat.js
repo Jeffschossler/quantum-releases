@@ -18,6 +18,34 @@ const avisaPai = d => { if (PC && parent !== window) try { parent.postMessage(Ob
 try { const m = /[#&]eu=([^&]+)/.exec(location.hash); if (m) { localStorage.setItem('qc_chat_eu_novo', decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname); } } catch (e) {}
 // convite pelo link (#g=...): guarda e abre o chat
 try { const m = /[#&]g=([^&]+)/.exec(location.hash); if (m) { localStorage.setItem('qc_chat_conv', decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname); } } catch (e) {}
+// MESMO chat no PC e no celular ligados um ao outro (pedido do usuário em 10/11/2026: "o grupo que criei no app deve sincronizar com os
+// grupos do PC"): a chave da ligação celular ↔ plataforma (o código do QR "Conectar celular": qc_codigo no celular, #pt= no PC) também abre
+// o chat (docs/supabase_chat_vincular.sql). O celular liga a chave dele a ela; o PC entra com ela. Dois participantes viram um só.
+let LIGA = null, VELHO = null;
+try { const m = /[#&]pt=([^&]+)/.exec(location.hash); if (m) LIGA = decodeURIComponent(m[1]); else if (!PC) LIGA = localStorage.getItem('qc_codigo'); } catch (e) {}
+if (LIGA && LIGA.length < 32) LIGA = null;
+if (PC && LIGA) { VELHO = CH.tok; CH.tok = LIGA; }                 // no PC, o chat é o da ligação (o antigo deste PC é juntado a ele)
+const lsG = k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, lsS = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+async function sincroniza() {
+ if (!LIGA) return;
+ try {
+  if (PC) {                                                       // o chat que este PC tinha antes (apelido e grupos) vai junto
+   if (VELHO && VELHO !== LIGA && lsG('qc_chat_vinc_pc') !== LIGA) {
+    const p = await rpc('qt_chat_perfil', {p_token: VELHO});
+    if (p) await rpc('qt_chat_vincular', {p_token: VELHO, p_chave: LIGA});
+    lsS('qc_chat_vinc_pc', LIGA);
+   }
+   return;
+  }
+  if (lsG('qc_chat_vinc') === LIGA) return;
+  const eu = await rpc('qt_chat_perfil', {p_token: CH.tok});
+  if (eu) await rpc('qt_chat_vincular', {p_token: CH.tok, p_chave: LIGA});              // o chat deste celular passa a ser o do PC também
+  else if (await rpc('qt_chat_perfil', {p_token: LIGA})) await rpc('qt_chat_vincular', {p_token: LIGA, p_chave: CH.tok});   // o PC já tem: este celular entra nele
+  else return;                                                    // nenhum dos dois tem apelido ainda: liga depois de escolher
+  lsS('qc_chat_vinc', LIGA);
+ } catch (e) {}                                                   // servidor sem a função ainda: tenta de novo na próxima vez
+}
+const SINC = sincroniza();
 const r = (f, o) => rpc(f, Object.assign({p_token: CH.tok}, o || {}));
 const quando = s => { const d = new Date(s), h = new Date(); const mesmo = d.toDateString() === h.toDateString();
  return mesmo ? d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : d.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); };
@@ -79,6 +107,7 @@ async function inicio() {
   if (novo !== CH.tok && novo.length >= 40) { let p = null; try { p = await rpc('qt_chat_perfil', {p_token: novo}); } catch (e) {}
    if (p) return confirma('Usar o chat do PC neste aparelho?', `Você passa a ser "${p.apelido}", com os mesmos grupos e mensagens do PC.` + (CH.apelido ? ` O chat atual deste aparelho ("${CH.apelido}") fica para trás.` : ''),
     () => { try { localStorage.setItem('qc_chat_tok', novo); } catch (e) {} CH.tok = novo; CH.eu = null; inicio(); }); } }
+ await SINC;
  if (!CH.tok) { $('chCorpo').innerHTML = '<div class="ch-vazio">Este navegador não deixa guardar dados: o chat não funciona aqui.</div>'; return; }
  try { const p = await r('qt_chat_perfil'); if (!p) return perfil(); CH.eu = p.id; CH.apelido = p.apelido; }
  catch (e) { $('chCorpo').innerHTML = `<div class="ch-vazio">Não foi possível falar com o servidor (${esc(e.message)}).</div>`; return; }
@@ -92,7 +121,7 @@ function perfil(trocar) {
   <p>Sem cadastro: escolha um apelido. É o nome que os outros veem nos grupos.</p><input id="chAp" maxlength="24" placeholder="Seu apelido" value="${esc(trocar ? CH.apelido : '')}">
   <button class="ch-bt" id="chApOk">${trocar ? 'Salvar' : 'Entrar no chat'}</button>${trocar ? '<button class="ch-bt2" id="chApVolta">Voltar</button><button class="ch-bt2" id="chOutro">📱 Usar este mesmo chat em outro aparelho</button><div id="chOutroTx"></div>' : ''}</div>`;
  const ok = async () => { const v = $('chAp').value.trim(); if (!v) return toast('Escreva um apelido');
-  try { const p = await r('qt_chat_perfil', {p_apelido: v}); CH.eu = p.id; CH.apelido = p.apelido; inicio(); } catch (e) { erro(e); } };
+  try { const p = await r('qt_chat_perfil', {p_apelido: v}); CH.eu = p.id; CH.apelido = p.apelido; if (LIGA && !PC && lsG('qc_chat_vinc') !== LIGA) { try { await r('qt_chat_vincular', {p_chave: LIGA}); lsS('qc_chat_vinc', LIGA); } catch (x) {} } inicio(); } catch (e) { erro(e); } };
  $('chApOk').onclick = ok; $('chAp').onkeydown = e => { if (e.key === 'Enter') ok(); };
  if (trocar) { $('chApVolta').onclick = lista;
   $('chOutro').onclick = () => { const l = LINK_APP + '#eu=' + encodeURIComponent(CH.tok);
@@ -264,7 +293,7 @@ async function info(id) {
 
 // mensagens novas com o chat fechado: número na aba (a cada 30 s, só se já tem apelido)
 setInterval(() => { if (!$('chat').classList.contains('on') && CH.eu) carregaGrupos(); }, 30000);
-r('qt_chat_perfil').then(p => { if (p) { CH.eu = p.id; CH.apelido = p.apelido; carregaGrupos(); } }, () => {});
+SINC.then(() => r('qt_chat_perfil')).then(p => { if (p) { CH.eu = p.id; CH.apelido = p.apelido; carregaGrupos(); } }, () => {});
 let temConv = false; try { temConv = !!localStorage.getItem('qc_chat_conv'); } catch (e) {}
 if (temConv || (PC && !BG)) abre();
 window.QC_CHAT = CH;
