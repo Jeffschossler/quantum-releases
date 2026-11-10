@@ -10,6 +10,12 @@ function token() {
   localStorage.setItem('qc_chat_tok', t); return t; } catch (e) { return null; }
 }
 CH.tok = token();
+// dentro da plataforma do PC (?pc=1): só o chat, sem o painel do celular; ?bg=1 = escondido, só conta as não lidas para o botão 💬 da plataforma
+const PC = /[?&]pc=1/.test(location.search), BG = /[?&]bg=1/.test(location.search);
+if (PC) document.documentElement.classList.add('pc-modo');
+const avisaPai = d => { if (PC && parent !== window) try { parent.postMessage(Object.assign({qc_chat: 1}, d), '*'); } catch (e) {} };
+// usar no celular o mesmo chat do PC (#eu=<código>, do QR code da plataforma): pergunta antes de trocar
+try { const m = /[#&]eu=([^&]+)/.exec(location.hash); if (m) { localStorage.setItem('qc_chat_eu_novo', decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname); } } catch (e) {}
 // convite pelo link (#g=...): guarda e abre o chat
 try { const m = /[#&]g=([^&]+)/.exec(location.hash); if (m) { localStorage.setItem('qc_chat_conv', decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname); } } catch (e) {}
 const r = (f, o) => rpc(f, Object.assign({p_token: CH.tok}, o || {}));
@@ -49,6 +55,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #chVer{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:8;display:none;flex-direction:column}#chVer.on{display:flex}
 #chVer img{flex:1;min-height:0;object-fit:contain;width:100%}#chVer div{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
 #chVer button{background:#1e293b;color:#e2e8f0;border:1px solid #334155}
+html.pc-modo body > header,html.pc-modo main,html.pc-modo nav{display:none!important}html.pc-modo #chat header{padding-top:8px}
 nav b .ch-nb{position:absolute;margin:-4px 0 0 -6px;background:var(--verde);color:#052e1a;border-radius:99px;font-size:10px;font-weight:800;padding:0 5px;font-style:normal}
 </style>`);
 document.body.insertAdjacentHTML('beforeend', `<div id="chat"><header><button id="chVolta" aria-label="Voltar">‹</button><div id="chTit"><b>Chat</b><span></span></div><div id="chAc"></div></header>
@@ -62,11 +69,16 @@ $('chSemPc').onclick = () => abre();
 nav.querySelector('[data-chat]').onclick = e => { e.stopPropagation(); abre(); };
 
 function abre() { $('chat').classList.add('on'); CH.tela = 'lista'; inicio(); }
-function fecha() { $('chat').classList.remove('on'); clearTimeout(CH.t); CH.g = null; badgeNav(); }
+function fecha() { if (PC) return; $('chat').classList.remove('on'); clearTimeout(CH.t); CH.g = null; badgeNav(); }
 $('chVolta').onclick = () => { if (CH.tela === 'conversa') lista(); else if (CH.tela === 'info') conversa(CH.g); else fecha(); };
-function topo(tit, sub, acoes) { $('chTit').firstElementChild.textContent = tit; $('chTit').lastElementChild.textContent = sub || ''; $('chAc').innerHTML = acoes || ''; }
+function topo(tit, sub, acoes) { $('chVolta').style.visibility = PC && (CH.tela === 'lista' || (CH.tela === 'perfil' && !CH.eu)) ? 'hidden' : ''; $('chTit').firstElementChild.textContent = tit; $('chTit').lastElementChild.textContent = sub || ''; $('chAc').innerHTML = acoes || ''; }
 
 async function inicio() {
+ let novo = null; try { novo = localStorage.getItem('qc_chat_eu_novo'); } catch (e) {}
+ if (novo) { try { localStorage.removeItem('qc_chat_eu_novo'); } catch (e) {}
+  if (novo !== CH.tok && novo.length >= 40) { let p = null; try { p = await rpc('qt_chat_perfil', {p_token: novo}); } catch (e) {}
+   if (p) return confirma('Usar o chat do PC neste aparelho?', `Você passa a ser "${p.apelido}", com os mesmos grupos e mensagens do PC.` + (CH.apelido ? ` O chat atual deste aparelho ("${CH.apelido}") fica para trás.` : ''),
+    () => { try { localStorage.setItem('qc_chat_tok', novo); } catch (e) {} CH.tok = novo; CH.eu = null; inicio(); }); } }
  if (!CH.tok) { $('chCorpo').innerHTML = '<div class="ch-vazio">Este navegador não deixa guardar dados: o chat não funciona aqui.</div>'; return; }
  try { const p = await r('qt_chat_perfil'); if (!p) return perfil(); CH.eu = p.id; CH.apelido = p.apelido; }
  catch (e) { $('chCorpo').innerHTML = `<div class="ch-vazio">Não foi possível falar com o servidor (${esc(e.message)}).</div>`; return; }
@@ -78,11 +90,15 @@ function perfil(trocar) {
  CH.tela = 'perfil'; $('chEnvio').classList.remove('on'); topo(trocar ? 'Meu apelido' : 'Chat', '');
  $('chCorpo').innerHTML = `<div class="ch-form"><div style="font-size:46px">💬</div><h2>${trocar ? 'Trocar o apelido' : 'Como quer ser chamado?'}</h2>
   <p>Sem cadastro: escolha um apelido. É o nome que os outros veem nos grupos.</p><input id="chAp" maxlength="24" placeholder="Seu apelido" value="${esc(trocar ? CH.apelido : '')}">
-  <button class="ch-bt" id="chApOk">${trocar ? 'Salvar' : 'Entrar no chat'}</button>${trocar ? '<button class="ch-bt2" id="chApVolta">Voltar</button>' : ''}</div>`;
+  <button class="ch-bt" id="chApOk">${trocar ? 'Salvar' : 'Entrar no chat'}</button>${trocar ? '<button class="ch-bt2" id="chApVolta">Voltar</button><button class="ch-bt2" id="chOutro">📱 Usar este mesmo chat em outro aparelho</button><div id="chOutroTx"></div>' : ''}</div>`;
  const ok = async () => { const v = $('chAp').value.trim(); if (!v) return toast('Escreva um apelido');
   try { const p = await r('qt_chat_perfil', {p_apelido: v}); CH.eu = p.id; CH.apelido = p.apelido; inicio(); } catch (e) { erro(e); } };
  $('chApOk').onclick = ok; $('chAp').onkeydown = e => { if (e.key === 'Enter') ok(); };
- if (trocar) $('chApVolta').onclick = lista;
+ if (trocar) { $('chApVolta').onclick = lista;
+  $('chOutro').onclick = () => { const l = LINK_APP + '#eu=' + encodeURIComponent(CH.tok);
+   if (PC) return avisaPai({qr: l});                          // a plataforma mostra o QR code
+   $('chOutroTx').innerHTML = `<p style="font-size:13px">Abra este link no outro aparelho (é a chave do seu chat: <b>não mande para ninguém</b>):</p><div class="ch-link">${esc(l)}</div><button class="ch-bt" id="chOutroCop">📋 Copiar</button>`;
+   $('chOutroCop').onclick = () => (navigator.clipboard ? navigator.clipboard.writeText(l) : Promise.reject()).then(() => toast('Link copiado'), () => prompt('Copie:', l)); }; }
 }
 
 // ---------- lista de grupos ----------
@@ -107,6 +123,7 @@ function desenhaLista() {
 }
 function badgeNav() {
  const n = CH.grupos.reduce((s, g) => s + (g.nao_lidas || 0) + (g.pendentes || 0), 0), b = nav.querySelector('[data-chat]');
+ avisaPai({n, grupos: CH.grupos.map(g => ({id: g.id, nome: g.nome, nao: (g.nao_lidas || 0) + (g.pendentes || 0), ult: g.ultima ? (g.ultima.apelido || '') + ': ' + (g.ultima.img ? '📷 ' : '') + (g.ultima.texto || '') : ''}))});
  let i = b.querySelector('.ch-nb'); if (!n) { if (i) i.remove(); return; }
  if (!i) { i = document.createElement('i'); i.className = 'ch-nb'; b.firstElementChild.after(i); } i.textContent = n > 99 ? '99+' : n;
 }
@@ -249,6 +266,6 @@ async function info(id) {
 setInterval(() => { if (!$('chat').classList.contains('on') && CH.eu) carregaGrupos(); }, 30000);
 r('qt_chat_perfil').then(p => { if (p) { CH.eu = p.id; CH.apelido = p.apelido; carregaGrupos(); } }, () => {});
 let temConv = false; try { temConv = !!localStorage.getItem('qc_chat_conv'); } catch (e) {}
-if (temConv) abre();
+if (temConv || (PC && !BG)) abre();
 window.QC_CHAT = CH;
 })();
