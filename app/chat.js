@@ -73,7 +73,12 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .ch-m img{display:block;max-width:100%;max-height:300px;border-radius:9px;margin:2px 0 3px;cursor:pointer;background:#0b1220;min-width:120px;min-height:80px}
 #chEnvio{display:none;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--borda);background:#0d1526;align-items:flex-end}#chEnvio.on{display:flex}
 #chTx{flex:1;background:#0b1220;color:var(--txt);border:1px solid #334155;border-radius:18px;padding:9px 14px;font:inherit;resize:none;max-height:120px;min-height:40px;overflow-y:hidden}
-#chFoto,#chMand{flex:none;width:42px;height:42px;border-radius:50%;padding:0;font-size:19px}#chFoto{background:#1e293b;color:#e2e8f0}#chMand{background:var(--azul);color:#052e3d}
+#chFoto,#chMand,#chAnexo,#chMic,#chMicX{flex:none;width:42px;height:42px;border-radius:50%;padding:0;font-size:19px}#chFoto,#chAnexo,#chMic,#chMicX{background:#1e293b;color:#e2e8f0}#chMand{background:var(--azul);color:#052e3d}
+#chMic.grav{background:#dc2626;color:#fff;animation:chPisca 1s infinite}@keyframes chPisca{50%{opacity:.6}}#chMicX{display:none}#chEnvio.grav #chMicX{display:block}#chEnvio.grav #chTx{color:#fca5a5}
+.ch-m .tk{margin-left:4px;letter-spacing:-3px}.ch-m .tk.ok2{color:#38bdf8}.ch-m.pend{opacity:.75}
+.ch-arq{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.18);border-radius:10px;padding:8px 10px;margin:2px 0 4px;cursor:pointer;min-width:200px}.ch-arq b{display:block;font-size:13.5px;word-break:break-all}.ch-arq small{color:#94a3b8}.ch-arq i{font-style:normal;font-size:24px}
+.ch-aud{display:flex;align-items:center;gap:8px;margin:2px 0 4px;min-width:220px}.ch-aud button{flex:none;width:auto;padding:6px 12px;background:rgba(0,0,0,.25);color:#e2e8f0;border-radius:99px;font-size:13px}.ch-aud audio{max-width:250px;height:36px}
+#chat.solta #chCorpo{outline:2px dashed var(--azul);outline-offset:-6px}
 .ch-form{max-width:440px;margin:30px auto;text-align:center}.ch-form input{width:100%;background:#0b1220;color:var(--txt);border:1px solid #334155;border-radius:10px;padding:12px;font:inherit;margin:12px 0}
 .ch-form p{color:var(--sub)}.ch-bt{background:var(--azul);color:#052e3d;width:100%}.ch-bt2{background:#1e293b;color:#e2e8f0;border:1px solid #334155;width:100%;margin-top:8px}
 .ch-sec{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:12px 14px;margin-bottom:12px}.ch-sec h4{margin:0 0 8px;font-size:12px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px}
@@ -88,7 +93,7 @@ nav b .ch-nb{position:absolute;margin:-4px 0 0 -6px;background:var(--verde);colo
 </style>`);
 document.body.insertAdjacentHTML('beforeend', `<div id="chat"><header><button id="chVolta" aria-label="Voltar">‹</button><div id="chTit"><b>Chat</b><span></span></div><div id="chAc"></div></header>
  <div id="chCorpo"></div>
- <div id="chEnvio"><button id="chFoto" title="Enviar foto">📷</button><input type="file" id="chArq" accept="image/*" style="display:none"><textarea id="chTx" rows="1" placeholder="Mensagem" maxlength="2000"></textarea><button id="chMand" title="Enviar">➤</button></div></div>
+ <div id="chEnvio"><button id="chAnexo" title="Enviar arquivo (até 3 MB) — dá também para colar um print (Ctrl+V) ou arrastar arquivos para a conversa">📎</button><input type="file" id="chArqF" multiple style="display:none"><button id="chFoto" title="Enviar foto">📷</button><input type="file" id="chArq" accept="image/*" style="display:none"><button id="chMicX" title="Cancelar o áudio">✕</button><textarea id="chTx" rows="1" placeholder="Mensagem" maxlength="2000"></textarea><button id="chMic" title="Gravar áudio (clique de novo para enviar)">🎤</button><button id="chMand" title="Enviar">➤</button></div></div>
 <div id="chVer"><img alt=""><div><button id="chBaixa">⬇ Baixar</button><button id="chApFoto">🗑 Apagar</button><button id="chFecha">✕ Fechar</button></div></div>`);
 // aba no menu de baixo e botão na tela de conectar o PC (o chat funciona sem o PC)
 const nav = $('nav'); nav.insertAdjacentHTML('beforeend', '<b data-chat="1"><span>💬</span>Chat</b>');
@@ -142,7 +147,7 @@ async function carregaGrupos() { try { CH.grupos = await r('qt_chat_grupos') || 
 function desenhaLista() {
  if (CH.tela !== 'lista') return;
  $('chCorpo').innerHTML = CH.grupos.length ? CH.grupos.map(g => {
-  const u = g.ultima, txt = g.status === 'pendente' ? '⏳ Aguardando o dono aceitar a sua entrada' : u ? (u.apelido ? esc(u.apelido) + ': ' : '') + (u.img ? '📷 Foto ' : '') + esc(u.texto || '') : 'Sem mensagens';
+  const u = g.ultima, txt = g.status === 'pendente' ? '⏳ Aguardando o dono aceitar a sua entrada' : u ? (u.apelido ? esc(u.apelido) + ': ' : '') + (u.img ? (/^audio\//.test(u.atipo || '') ? '🎤 Áudio ' : u.atipo && !/^image\//.test(u.atipo) ? '📎 Arquivo ' : '📷 Foto ') : '') + esc(u.texto || '') : 'Sem mensagens';
   return `<div class="ch-g" data-g="${g.id}" data-st="${g.status}"><div class="ch-av">${esc((g.nome || '?').trim()[0].toUpperCase())}</div><b>${esc(g.nome)}${g.dono ? ' <span style="font-size:11px;color:var(--amar)">· dono</span>' : ''}</b>
    <span class="hr">${u ? quando(u.criado) : ''}</span><span class="ult">${txt}</span>${g.pendentes ? `<span class="ch-bad am" title="pedidos para entrar">${g.pendentes} pedido${g.pendentes > 1 ? 's' : ''}</span>` : g.nao_lidas ? `<span class="ch-bad">${g.nao_lidas}</span>` : '<span></span>'}</div>`; }).join('')
   : `<div class="ch-vazio"><div style="font-size:42px">💬</div><p>Você ainda não está em nenhum grupo.</p><p>Crie um grupo e mande o link de convite para quem quiser, ou entre num grupo pelo link ou pelo código que alguém te mandou.</p>
@@ -179,7 +184,7 @@ async function conversa(id) {
  const g = CH.grupos.find(x => x.id === id); topo(g ? g.nome : 'Grupo', g ? g.membros + ' membro(s)' : '', '<button id="chInfo">⚙</button>');
  $('chInfo').onclick = () => info(id); $('chEnvio').classList.add('on');
  $('chCorpo').innerHTML = '<div class="ch-vazio">Carregando…</div>';
- try { const x = await r('qt_chat_msgs', {p_grupo: id}); CH.eu = x.eu; CH.msgs = x.msgs; CH.fim = x.msgs.length < 60; }
+ try { const x = await r('qt_chat_msgs', {p_grupo: id}); CH.eu = x.eu; CH.msgs = x.msgs; CH.fim = x.msgs.length < 60; CH.rec = x.rec; }
  catch (e) { erro(e); return lista(); }
  desenhaMsgs(true);
  if (!g) carregaGrupos().then(() => { const g2 = CH.grupos.find(x => x.id === id); if (g2 && CH.g === id) topo(g2.nome, g2.membros + ' membro(s)', '<button id="chInfo">⚙</button>'), $('chInfo').onclick = () => info(id); });
@@ -187,13 +192,15 @@ async function conversa(id) {
 }
 async function novas() {
  if (CH.tela !== 'conversa' || !$('chat').classList.contains('on')) return;
- const id = CH.g, ult = CH.msgs.length ? CH.msgs[CH.msgs.length - 1].id : 0;
- try { const x = await r('qt_chat_msgs', {p_grupo: id, p_depois: ult}); if (CH.g === id && x.msgs.length) { CH.msgs.push(...x.msgs.filter(m => m.id > ult)); desenhaMsgs(); } }
+ const id = CH.g, reais = CH.msgs.filter(m => !m.pend), ult = reais.length ? reais[reais.length - 1].id : 0;
+ try { const x = await r('qt_chat_msgs', {p_grupo: id, p_depois: ult}); if (CH.g !== id) return;
+  const novo = x.msgs.filter(m => m.id > ult); if (novo.length) CH.msgs = CH.msgs.filter(m => !m.pend).concat(novo).concat(CH.msgs.filter(m => m.pend && !m.feito));
+  if (novo.length || x.rec !== CH.rec) { CH.rec = x.rec; desenhaMsgs(); } }
  catch (e) { if (/acesso/.test(e.message)) { toast('Você não está mais neste grupo'); return lista(); } }
  CH.t = setTimeout(novas, document.hidden ? 15000 : 3000);
 }
 async function anteriores() {
- const pri = CH.msgs.length ? CH.msgs[0].id : null; if (!pri) return;
+ const pri = (CH.msgs.find(m => !m.pend) || {}).id; if (!pri) return;
  try { const x = await r('qt_chat_msgs', {p_grupo: CH.g, p_antes: pri}); const c = $('chCorpo'), h = c.scrollHeight;
   CH.msgs = x.msgs.concat(CH.msgs); CH.fim = x.msgs.length < 60; desenhaMsgs(); c.scrollTop = c.scrollHeight - h; } catch (e) { erro(e); }
 }
@@ -203,18 +210,31 @@ function desenhaMsgs(desce) {
  CH.msgs.forEach(m => {
   const d = diaTxt(m.criado); if (d !== dia) { dia = d; h += `<div class="ch-dia"><span>${d}</span></div>`; }
   if (m.sistema) { h += `<div class="ch-sis">${esc(m.texto)}</div>`; return; }
-  const eu = m.uid === CH.eu;
-  h += `<div class="ch-m ${eu ? 'eu' : 'ele'}" data-m="${m.id}" data-pode="${eu || dono ? 1 : 0}">${eu ? '' : `<span class="ap">${esc(m.apelido || '?')}</span>`}${m.img ? `<img data-img="${m.img}" alt="foto"${CH.fotos[m.img] ? ` src="${CH.fotos[m.img]}"` : ''}>` : ''}${m.texto ? esc(m.texto) : ''}<span class="hr">${new Date(m.criado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</span></div>`;
+  const eu = m.uid === CH.eu, tp = m.atipo || (m.img ? 'image/jpeg' : '');
+  let anexo = '';
+  if (m.pend && m.atipo) anexo = `<div class="ch-arq"><i>${/^audio\//.test(tp) ? '🎤' : /^image\//.test(tp) ? '📷' : '📎'}</i><div><b>${esc(m.anome || 'enviando…')}</b><small>enviando…</small></div></div>`;
+  else if (m.img && /^image\//.test(tp)) anexo = `<img data-img="${m.img}" alt="foto"${CH.fotos[m.img] ? ` src="${CH.fotos[m.img]}"` : ''}>`;
+  else if (m.img && /^audio\//.test(tp)) anexo = `<div class="ch-aud" data-aud="${m.img}">${CH.fotos[m.img] ? `<audio controls src="${CH.fotos[m.img]}"></audio>` : `<button type="button">▶ Áudio${m.atam ? ' · ' + chTam(m.atam) : ''}</button>`}</div>`;
+  else if (m.img) anexo = `<div class="ch-arq" data-arq="${m.img}"><i>${chIcone(m.anome, tp)}</i><div><b>${esc(m.anome || 'arquivo')}</b><small>${m.atam ? chTam(m.atam) + ' · ' : ''}toque para baixar</small></div></div>`;
+  const tk = !eu ? '' : m.pend ? (m.erro ? ' <span class="tk" title="não enviada">⚠</span>' : ' <span class="tk" title="enviando">🕓</span>')
+   : (CH.rec != null && m.id <= CH.rec ? ' <span class="tk ok2" title="recebida por todos do grupo">✓✓</span>' : ' <span class="tk" title="enviada (no servidor)">✓</span>');
+  h += `<div class="ch-m ${eu ? 'eu' : 'ele'}${m.pend ? ' pend' : ''}" data-m="${m.id}" data-pode="${(eu || dono) && !m.pend ? 1 : 0}">${eu ? '' : `<span class="ap">${esc(m.apelido || '?')}</span>`}${anexo}${m.texto ? esc(m.texto) : ''}<span class="hr">${new Date(m.criado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}${tk}</span></div>`;
  });
  c.innerHTML = h || '<div class="ch-vazio">Nenhuma mensagem ainda. Diga oi! 👋</div>';
  const a = $('chAnt'); if (a) a.onclick = anteriores;
  c.querySelectorAll('img[data-img]').forEach(im => { if (!im.src) foto(+im.dataset.img).then(u => { if (u) { im.src = u; if (noFim) c.scrollTop = c.scrollHeight; } }); im.onclick = e => { e.stopPropagation(); ver(+im.dataset.img, +im.closest('.ch-m').dataset.m, im.closest('.ch-m').dataset.pode === '1'); }; });
+ c.querySelectorAll('[data-aud] button').forEach(b => b.onclick = async e => { e.stopPropagation(); const box = b.parentNode, id = +box.dataset.aud; b.textContent = '⏳ carregando…';
+  const u = await foto(id); if (!u) { b.textContent = '⚠ não carregou'; return; } box.innerHTML = `<audio controls autoplay src="${u}"></audio>`; });
+ c.querySelectorAll('[data-arq]').forEach(el => el.onclick = async e => { e.stopPropagation(); const id = +el.dataset.arq, sm = el.querySelector('small'), t0 = sm.textContent; sm.textContent = '⏳ baixando…';
+  const u = await foto(id); sm.textContent = t0; if (!u) return toast('Não foi possível baixar o arquivo');
+  const a = document.createElement('a'); a.href = u; a.download = (CH.nomes[id] || 'arquivo-' + id); document.body.appendChild(a); a.click(); a.remove(); });
+ c.querySelectorAll('audio').forEach(a => a.onclick = e => e.stopPropagation());
  c.querySelectorAll('.ch-m[data-pode="1"]').forEach(el => el.onclick = () => confirma('Apagar a mensagem?', 'Ela some para todos do grupo.', () => apagar(+el.dataset.m)));
  if (noFim) c.scrollTop = c.scrollHeight;
 }
 async function foto(id) {
  if (CH.fotos[id]) return CH.fotos[id];
- try { const x = await r('qt_chat_foto', {p_img: id}); if (!x) return null; return CH.fotos[id] = 'data:' + x.tipo + ';base64,' + x.dados; } catch (e) { return null; }
+ try { const x = await r('qt_chat_foto', {p_img: id}); if (!x) return null; if (x.nome) CH.nomes[id] = x.nome; return CH.fotos[id] = 'data:' + x.tipo + ';base64,' + x.dados; } catch (e) { return null; }
 }
 async function apagar(id) { try { await r('qt_chat_apagar', {p_msg: id}); CH.msgs = CH.msgs.filter(m => m.id !== id); desenhaMsgs(); toast('Mensagem apagada'); } catch (e) { erro(e); } }
 function ver(img, msg, pode) {
@@ -225,21 +245,75 @@ function ver(img, msg, pode) {
 }
 $('chFecha').onclick = () => $('chVer').classList.remove('on');
 // enviar
-async function envia(texto, img) {
- if (CH.enviando || !CH.g) return; CH.enviando = true; $('chMand').disabled = $('chFoto').disabled = true;
- try { await r('qt_chat_enviar', Object.assign({p_grupo: CH.g, p_texto: texto || null}, img ? {p_img: img.dados, p_tipo: img.tipo} : {}));
-  clearTimeout(CH.t); await novas(); }
- catch (e) { erro(e); throw e; }
- finally { CH.enviando = false; $('chMand').disabled = $('chFoto').disabled = false; }
+const chTam = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+const chIcone = (nome, tp) => /\.pdf$/i.test(nome || '') || /pdf/.test(tp) ? '📕' : /\.(xlsx?|csv)$/i.test(nome || '') ? '📊' : /\.(docx?|txt)$/i.test(nome || '') ? '📄' : /\.(zip|rar|7z)$/i.test(nome || '') ? '🗜' : /^video\//.test(tp) ? '🎬' : '📎';
+CH.nomes = {}; CH.npend = 0; CH.fila = Promise.resolve();
+// envia em fila (uma de cada vez, na ordem): a mensagem aparece na hora com 🕓 e vira ✓ quando chega ao servidor
+function envia(texto, anexo) {
+ if (!CH.g) return Promise.resolve();
+ const g = CH.g, tmp = {id: 'p' + (++CH.npend), uid: CH.eu, texto: texto || null, pend: true, criado: new Date().toISOString(), atipo: anexo && anexo.tipo, anome: anexo && anexo.nome};
+ CH.msgs.push(tmp); desenhaMsgs(true);
+ const vai = async () => {
+  try {
+   try { await r('qt_chat_enviar2', Object.assign({p_grupo: g, p_texto: texto || null}, anexo ? {p_dados: anexo.dados, p_tipo: anexo.tipo, p_nome: anexo.nome || null} : {})); }
+   catch (e) {                                                       // servidor ainda sem o SQL novo: texto e foto pelo caminho antigo
+    if (!/qt_chat_enviar2|function|schema cache/i.test(e.message || '')) throw e;
+    if (anexo && !/^image\//.test(anexo.tipo)) throw new Error('para mandar áudio e arquivos, rode o docs/supabase_chat_anexos.sql no Supabase');
+    await r('qt_chat_enviar', Object.assign({p_grupo: g, p_texto: texto || null}, anexo ? {p_img: anexo.dados, p_tipo: anexo.tipo} : {}));
+   }
+   tmp.feito = true; clearTimeout(CH.t); if (CH.g === g) await novas();
+  } catch (e) { tmp.erro = true; erro(e); setTimeout(() => { CH.msgs = CH.msgs.filter(m => m !== tmp); if (CH.g === g) desenhaMsgs(); }, 4000); if (CH.g === g) desenhaMsgs(); throw e; }
+ };
+ const p = CH.fila.then(vai); CH.fila = p.catch(() => {}); return p;
 }
-$('chMand').onclick = () => { const t = $('chTx').value.trim(); if (!t) return; envia(t).then(() => { $('chTx').value = ''; ajustaTx(); }, () => {}); };
+// qualquer arquivo: foto (reduzida), áudio ou outro (até 3 MB)
+const lerB64 = f => new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = () => falha(new Error('não consegui ler o arquivo')); fr.readAsDataURL(f); });
+async function enviaArquivo(f, texto) {
+ if (!f) return;
+ try {
+  if (/^image\/(png|jpe?g|webp|bmp)$/i.test(f.type)) { const img = await reduz(f); img.nome = (f.name && f.name !== 'image.png' ? f.name.replace(/\.\w+$/, '') : 'print-' + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')) + '.jpg'; return envia(texto, img); }
+  if (f.size > 3 * 1048576) return toast(`⚠ ${f.name}: o máximo é 3 MB (este tem ${chTam(f.size)})`);
+  return envia(texto, {dados: await lerB64(f), tipo: f.type || 'application/octet-stream', nome: f.name || 'arquivo'});
+ } catch (e) { if (e && e.message) erro(e); }
+}
+$('chMand').onclick = () => { const t = $('chTx').value.trim(); if (!t) return; $('chTx').value = ''; ajustaTx(); envia(t).catch(() => {}); };
 const ajustaTx = () => { const t = $('chTx'); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden'; };
 $('chTx').oninput = ajustaTx;
 $('chTx').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !('ontouchstart' in window)) { e.preventDefault(); $('chMand').click(); } };
 $('chFoto').onclick = () => $('chArq').click();
-$('chArq').onchange = async () => {
- const f = $('chArq').files[0]; $('chArq').value = ''; if (!f) return;
- try { toast('Enviando a foto…'); const img = await reduz(f); await envia($('chTx').value.trim(), img); $('chTx').value = ''; ajustaTx(); } catch (e) { if (e && e.message && !/servidor/.test(e.message)) erro(e); }
+$('chArq').onchange = () => { const fs = [...$('chArq').files]; $('chArq').value = ''; fs.forEach(f => enviaArquivo(f)); };
+$('chAnexo').onclick = () => $('chArqF').click();
+$('chArqF').onchange = () => { const fs = [...$('chArqF').files]; $('chArqF').value = ''; fs.forEach(f => enviaArquivo(f)); };
+// colar um print (Ctrl+V) ou um arquivo copiado direto no campo de mensagem
+$('chTx').addEventListener('paste', e => {
+ const fs = [...((e.clipboardData && e.clipboardData.items) || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+ if (!fs.length) return; e.preventDefault(); fs.forEach(f => enviaArquivo(f));
+});
+// arrastar arquivos para a conversa
+['dragenter', 'dragover'].forEach(ev => $('chat').addEventListener(ev, e => { if (CH.tela !== 'conversa' || !e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); $('chat').classList.add('solta'); }));
+['dragleave', 'drop'].forEach(ev => $('chat').addEventListener(ev, e => { $('chat').classList.remove('solta'); if (ev === 'drop' && CH.tela === 'conversa' && e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); [...e.dataTransfer.files].forEach(f => enviaArquivo(f)); } }));
+// áudio: 1º clique grava, 2º envia (✕ cancela); no máximo 3 minutos
+const GRAV = {rec: null, partes: [], t0: 0, timer: null, cancel: false};
+function micPara(cancelar) { GRAV.cancel = !!cancelar; if (GRAV.rec && GRAV.rec.state !== 'inactive') GRAV.rec.stop(); }
+$('chMicX').onclick = () => micPara(true);
+$('chMic').onclick = async () => {
+ if (GRAV.rec) return micPara(false);
+ if (!navigator.mediaDevices || !window.MediaRecorder) return toast('⚠ Este navegador não grava áudio');
+ let st; try { st = await navigator.mediaDevices.getUserMedia({audio: true}); } catch (e) { return toast('⚠ Sem acesso ao microfone: libere o microfone para este site/aplicativo'); }
+ const tipo = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+ const rec = new MediaRecorder(st, tipo ? {mimeType: tipo, audioBitsPerSecond: 32000} : undefined);
+ Object.assign(GRAV, {rec, partes: [], t0: Date.now(), cancel: false});
+ rec.ondataavailable = e => { if (e.data && e.data.size) GRAV.partes.push(e.data); };
+ rec.onstop = async () => {
+  st.getTracks().forEach(t => t.stop()); clearInterval(GRAV.timer); $('chMic').classList.remove('grav'); $('chMic').textContent = '🎤'; $('chEnvio').classList.remove('grav'); $('chTx').placeholder = 'Mensagem';
+  const dur = Math.round((Date.now() - GRAV.t0) / 1000), cancel = GRAV.cancel; GRAV.rec = null;
+  if (cancel || dur < 1 || !GRAV.partes.length) return;
+  const mt = (rec.mimeType || tipo || 'audio/webm').split(';')[0], blob = new Blob(GRAV.partes, {type: mt});
+  const f = new File([blob], `audio-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}.${/mp4/.test(mt) ? 'm4a' : /ogg/.test(mt) ? 'ogg' : 'webm'}`, {type: mt});
+  enviaArquivo(f);
+ };
+ rec.start(500); $('chMic').classList.add('grav'); $('chMic').textContent = '➤'; $('chEnvio').classList.add('grav');
+ GRAV.timer = setInterval(() => { const s = Math.round((Date.now() - GRAV.t0) / 1000); $('chTx').placeholder = `● Gravando ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} — clique em ➤ para enviar ou ✕ para cancelar`; if (s >= 180) micPara(false); }, 250);
 };
 // reduz a foto no próprio celular (lado maior até 1600 px, JPEG) para caber no limite do servidor (~450 KB)
 function reduz(f) {
