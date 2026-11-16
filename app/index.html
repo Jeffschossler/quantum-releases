@@ -55,6 +55,9 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 #grTit{display:flex;flex-direction:column;min-width:0}#grTit b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#grTit span{font-size:12px;color:var(--sub)}
 #grArea{flex:1;min-height:0;position:relative}#grCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}#grBts{position:absolute;left:8px;bottom:26px;display:flex;gap:6px;opacity:.9}#grBts button{background:rgba(15,23,42,.82);border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;width:auto;flex:none}#gr.sem-info #grInfo{display:none}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
 .lin-at{display:grid;grid-template-columns:52px 1fr auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13px}.lin-at:last-child{border:0}.lin-at span{color:var(--sub);font-size:12px}
+.chips{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}.chips b{background:#0d1526;border:1px solid var(--borda);border-radius:99px;padding:5px 12px;font-size:13px;color:var(--sub);cursor:pointer}.chips b.on{background:#0c2a43;border-color:#38bdf8;color:#e0f2fe}
+.per-at{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13.5px}.per-at:last-child{border:0}.per-at span{color:var(--sub);font-size:12px}
+.at-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.at-g h3{margin:0;font-size:17px}.at-g .sub{font-size:12.5px;color:var(--sub);width:100%}.tfs{display:flex;gap:6px;width:100%;margin-top:4px}.tfs button{background:#0c2a43;color:#e0f2fe;border:1px solid #1e3a5f;padding:10px 0}
 #grInfo .op{padding:6px 0}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 </style>
 </head>
@@ -73,13 +76,20 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
    <div class="card" id="cAtivo" style="display:none"><div class="lbl">Por ativo (hoje)</div><div id="hAtivo"></div></div>
    <div class="card"><div class="lbl">Curva do dia</div><canvas id="curva"></canvas></div>
    <div class="card"><div class="lbl">Por automação (hoje)</div><canvas id="barras"></canvas></div>
+   <div class="card" id="cPer"><div class="lbl">Resultado por período · automações</div>
+    <div class="chips" id="pChips"><b data-per="semana">Semana</b><b data-per="mes">Mês</b><b data-per="30">30 dias</b><b data-per="90">90 dias</b><b data-per="desde">Desde <span id="pDesde">…</span></b><input type="date" id="pDeIn" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"></div>
+    <div class="big" id="pTot">–</div><div class="sub" id="pDe" style="font-size:12.5px;color:var(--sub)"></div>
+    <div class="grid"><div><span class="lbl">Dias +</span><b id="pDias">–</b></div><div><span class="lbl">Operações</span><b id="pOps">–</b></div><div><span class="lbl">Acerto</span><b id="pAc">–</b></div></div>
+    <div class="grid"><div><span class="lbl">Média/dia</span><b id="pMed">–</b></div><div><span class="lbl">Melhor dia</span><b id="pMel">–</b></div><div><span class="lbl">Pior dia</span><b id="pPior">–</b></div></div>
+    <canvas id="curvaPer" style="margin-top:10px;height:200px"></canvas><div id="pAutos" style="margin-top:8px"></div></div>
    <div class="card" id="cConta"></div>
   </section>
   <section class="sec" id="s-autos"><div id="listaAutos"></div><button class="b-todas" id="bTodas">⏸ Pausar todas as automações</button></section>
   <section class="sec" id="s-ops"><div class="card" id="listaOps"></div></section>
+  <section class="sec" id="s-graf"><div id="listaGraf"></div></section>
  </div>
 </main>
-<nav id="nav" style="display:none"><b class="on" data-s="hoje"><span>📊</span>Hoje</b><b data-s="autos"><span>🤖</span>Automações</b><b data-s="ops"><span>📋</span>Operações</b></nav>
+<nav id="nav" style="display:none"><b class="on" data-s="hoje"><span>📊</span>Hoje</b><b data-s="autos"><span>🤖</span>Automações</b><b data-s="ops"><span>📋</span>Operações</b><b data-s="graf"><span>📈</span>Gráfico</b></nav>
 <div id="gr"><header><button id="grVolta" aria-label="Voltar">‹</button><div id="grTit"><b></b><span></span></div><span id="grAt" style="margin-left:auto;font-size:12px;color:var(--sub)"></span></header>
  <div id="grSt"></div><div id="grArea"><canvas id="grCv"></canvas><div id="grBts"><button id="grAj" title="Ajustar o gráfico na tela">⟲ Ajustar</button><button id="grFim" title="Ir para o candle atual">≫</button><button id="grPain" title="Mostrar/esconder as operações">▾</button></div></div><div id="grInfo"></div></div>
 <div id="modal"><div><h3 id="mT"></h3><p id="mP"></p><div class="bts"><button class="b-pausa" id="mNao">Cancelar</button><button class="b-enc" id="mSim">Confirmar</button></div></div></div>
@@ -123,7 +133,7 @@ function desenha() {
  const c = D.conta, m = D.manual || {};
  $('cConta').innerHTML = `<div class="lbl">Conta e operações manuais</div>` + (c ? `<div style="margin-top:6px">MT5 ${esc(c.login)}${c.demo ? ' (demo)' : ''} · Saldo <b>${esc(c.moeda)} ${Number(c.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b> · Patrimônio <b>${Number(c.patrimonio).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b></div>` : '<div class="sub" style="margin-top:6px;color:var(--sub)">MT5 desconectado</div>')
   + `<div style="margin-top:6px">Manual hoje: Simulação <b class="${cls(m.sim)}">${brl(m.sim || 0)}</b>${m.mt5 != null ? ` · MT5 <b class="${cls(m.mt5)}">${brl(m.mt5)}</b>` : ''}</div>`;
- curva(ops); barras(autos); porAtivo(autos);
+ curva(ops); barras(autos); porAtivo(autos); periodo(); grafAtivos();
  // automações
  // só as que estão rodando (pedido do usuário em 10/11/2026): ligadas, no gerente de risco, posicionadas ou desligadas hoje pelo limite do dia
  const rodando = a => a.on || a.gerente || (a.pos && a.pos !== 'Zerado') || a.fim;
@@ -185,17 +195,82 @@ function barras(autos) {
   g.fillStyle = v >= 0 ? '#22c55e' : '#ef4444'; g.fillRect(meio, y + 4, Math.max(2, bw), 16);
   g.fillStyle = v >= 0 ? '#4ade80' : '#f87171'; g.textAlign = 'left'; g.fillText(brl(v), meio + Math.max(2, bw) + 6, y + 16); });
 }
+// ---------- resultado por período (pedido do usuário em 16/11/2026: "a curva da semana/mês") ----------
+// Os dias anteriores vêm prontos do PC (D.dias, recalculados a cada 10 min); hoje é somado das operações de hoje (D.hoje, a cada 15 s).
+let PER = 'semana'; try { PER = localStorage.getItem('qc_per') || 'semana'; } catch (e) {}
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function hojePc() { const m = /^(\d\d)\/(\d\d)\/(\d{4})/.exec((D && D.pc) || ''); return m ? new Date(+m[3], +m[2] - 1, +m[1]) : new Date(); }
+function periodo() {
+ const hoje = hojePc(), hj = iso(hoje), ini = new Date(hoje);
+ let pde = ''; try { pde = localStorage.getItem('qc_per_de') || ''; } catch (e) {}
+ $('pDesde').textContent = pde ? pde.split('-').reverse().slice(0, 2).join('/') : '…';
+ if (PER === 'desde' && /^\d{4}-\d\d-\d\d$/.test(pde)) { const [a, m, d] = pde.split('-'); ini.setFullYear(+a, +m - 1, +d); }   // "Desde…": a data que o usuário escolheu (ex.: o início do teste)
+ else if (PER === 'semana' || PER === 'desde') ini.setDate(ini.getDate() - ((ini.getDay() + 6) % 7)); else if (PER === 'mes') ini.setDate(1); else ini.setDate(ini.getDate() - (+PER - 1));
+ const de = iso(ini), dias = new Map();
+ (D.dias || []).forEach(([d, x]) => { if (d >= de && d < hj) dias.set(d, x); });
+ const h = {}; (D.hoje || []).forEach(o => { const x = h[o.id] || (h[o.id] = [0, 0, 0]); x[0] += o.pnl; x[1]++; x[2] += o.pnl > 0; }); if (Object.keys(h).length) dias.set(hj, h);
+ const nomes = Object.assign({}, D.nomes || {}); (D.autos || []).forEach(a => nomes[a.id] = a.nome); (D.hoje || []).forEach(o => nomes[o.id] = nomes[o.id] || o.nome);
+ const lst = [...dias.keys()].sort(), porDia = lst.map(d => [d, Object.values(dias.get(d)).reduce((s, v) => s + v[0], 0)]), pa = {};
+ let ops = 0, gan = 0; lst.forEach(d => Object.entries(dias.get(d)).forEach(([id, v]) => { const x = pa[id] || (pa[id] = [0, 0, 0, 0, 0]); x[0] += v[0]; x[1] += v[1]; x[2] += v[2]; x[3]++; x[4] += v[0] > 0; ops += v[1]; gan += v[2]; }));
+ const tot = porDia.reduce((s, x) => s + x[1], 0), vs = porDia.map(x => x[1]);
+ document.querySelectorAll('#pChips b').forEach(b => b.classList.toggle('on', b.dataset.per === PER));
+ $('pTot').textContent = brl(tot); $('pTot').className = 'big ' + cls(tot);
+ const dt = d => d.split('-').reverse().slice(0, 2).join('/');
+ $('pDe').textContent = `${dt(de)} a ${dt(hj)} · ${lst.length} dia(s) com operação` + (D.dias ? '' : ' · só hoje: atualize a plataforma do PC (0.8.7 ou mais nova) para ver os dias anteriores');
+ $('pDias').textContent = lst.length ? `${vs.filter(v => v > 0).length} de ${lst.length}` : '–'; $('pOps').textContent = ops; $('pAc').textContent = ops ? Math.round(gan / ops * 100) + '%' : '–';
+ const fx = (id, v) => { $(id).textContent = lst.length ? brl(v) : '–'; $(id).className = lst.length ? cls(v) : ''; };
+ fx('pMed', lst.length ? tot / lst.length : 0); fx('pMel', Math.max(...vs, 0)); fx('pPior', Math.min(...vs, 0));
+ $('pAutos').innerHTML = Object.entries(pa).sort((a, b) => b[1][0] - a[1][0]).map(([id, x]) => `<div class="per-at"><div><b>${esc(nomes[id] || 'Automação #' + id)}</b><br><span>${x[1]} op. · acerto ${x[1] ? Math.round(x[2] / x[1] * 100) : 0}% · ${x[4]} de ${x[3]} dia(s) +</span></div><span></span><b class="${cls(x[0])}">${brl(x[0])}</b></div>`).join('')
+  || '<div class="vazio">Nenhuma operação das automações neste período.</div>';
+ curvaPer(porDia);
+}
+function curvaPer(porDia) {                                         // barras de cada dia + curva acumulada (verde acima de zero, vermelha abaixo)
+ const [g, w, h] = fit($('curvaPer')); g.clearRect(0, 0, w, h);
+ if (!porDia.length) { g.fillStyle = '#64748b'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillText('Sem operações neste período', w / 2, h / 2); return; }
+ let acc = 0; const ac = porDia.map(x => acc += x[1]), todos = [0, ...ac, ...porDia.map(x => x[1])], mx = Math.max(...todos), mn = Math.min(...todos), pad = (mx - mn) * .12 || 10;
+ const n = porDia.length, L = 6, R = 6, bw = (w - L - R) / n, Y = v => 16 + (mx + pad - v) / (mx - mn + 2 * pad) * (h - 38), X = i => L + bw * (i + .5);
+ g.strokeStyle = '#334155'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(w, Y(0)); g.stroke(); g.setLineDash([]);
+ porDia.forEach(([, v], i) => { g.fillStyle = v >= 0 ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.35)'; const y0 = Y(0), y1 = Y(v); g.fillRect(X(i) - Math.min(18, bw * .3), Math.min(y0, y1), Math.min(36, bw * .6), Math.max(1, Math.abs(y1 - y0))); });
+ const pts = [[L, 0], ...ac.map((v, i) => [X(i), v])];
+ [[1, '#22c55e'], [-1, '#ef4444']].forEach(([s, cor]) => { g.save(); g.beginPath(); s > 0 ? g.rect(0, 0, w, Y(0)) : g.rect(0, Y(0), w, h); g.clip();
+  g.beginPath(); pts.forEach(([x, v], i) => i ? g.lineTo(x, Y(v)) : g.moveTo(x, Y(v))); g.strokeStyle = cor; g.lineWidth = 2.4; g.stroke();
+  pts.slice(1).forEach(([x, v]) => { g.fillStyle = cor; g.beginPath(); g.arc(x, Y(v), 3, 0, 7); g.fill(); }); g.restore(); });
+ g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'center'; const passo = Math.max(1, Math.ceil(40 / bw));
+ porDia.forEach(([d], i) => { if (i % passo === 0 || i === n - 1) g.fillText(d.slice(8) + '/' + d.slice(5, 7), X(i), h - 4); });
+ g.textAlign = 'right'; g.fillStyle = acc >= 0 ? '#4ade80' : '#f87171'; g.font = 'bold 11px sans-serif'; g.fillText('acumulado ' + brl(acc), w - 4, 11);
+}
+// ---------- gráfico ao vivo do ativo (pedido do usuário em 16/11/2026) ----------
+// Pedido "grafico" com alvo negativo = -(posição do ativo na lista D.ativos × 100 + tempo gráfico); o PC manda os candles do dia, o preço
+// médio do dia e as operações de hoje de TODAS as automações nesse ativo (com o nome de cada uma).
+let GTF = 5; try { GTF = +localStorage.getItem('qc_gtf') || 5; } catch (e) {}
+function grafAtivos() {
+ const at = D.ativos || [], hoje = D.hoje || [];
+ $('listaGraf').innerHTML = at.length ? at.map((x, k) => { const ops = hoje.filter(o => o.sym === x.sym), r = ops.reduce((s, o) => s + o.pnl, 0);
+  return `<div class="card at-g"><h3>${esc(x.sym)}</h3><span style="margin-left:auto" class="${cls(r)}"><b>${brl(r)}</b></span>
+   <div class="sub">${x.n} automação(ões) neste ativo · ${x.on} ligada(s) · ${ops.length} operação(ões) hoje</div>
+   <div class="tfs">${[1, 2, 5, 10, 15].map(tf => `<button data-ga="${k + 1}" data-tf="${tf}" ${tf === GTF ? 'style="border-color:#38bdf8;background:#075985"' : ''}>${tf} min</button>`).join('')}</div></div>`; }).join('')
+  + '<div class="vazio" style="padding-top:4px">Candles do dia, o preço médio do dia e as entradas e saídas de todas as automações no ativo. Para ver uma automação sozinha, com o indicador dela: aba Automações › 📈 Gráfico.</div>'
+  : D.ativos ? '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>'
+  : '<div class="card vazio">Atualize a plataforma do PC (versão 0.8.7 ou mais nova) para ver o gráfico ao vivo do ativo aqui.</div>';
+}
 function confirma(titulo, texto, fn) { $('mT').textContent = titulo; $('mP').textContent = texto; $('modal').classList.add('on'); $('mSim').onclick = () => { $('modal').classList.remove('on'); fn(); }; }
 $('mNao').onclick = () => $('modal').classList.remove('on');
+$('pDeIn').addEventListener('change', e => { const v = e.target.value; if (!v) return; try { localStorage.setItem('qc_per_de', v); localStorage.setItem('qc_per', 'desde'); } catch (x) {} PER = 'desde'; if (D) periodo(); });
 async function pede(acao, alvo, rot) {
  try { const n = await rpc('qt_comandar', {p_token: COD, p_acao: acao, p_alvo: alvo}); if (alvo != null) { ESPERA[alvo] = rot; ESPERA['n' + alvo] = n; } toast('Pedido enviado ao PC…'); desenha(); setTimeout(atualiza, 2500); }
  catch (e) { toast('Não foi possível: ' + e.message); }
 }
 document.addEventListener('click', e => {
- const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis]'); if (!t) return;
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga]'); if (!t) return;
  const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
+ else if (t.dataset.per === 'desde') { const i = $('pDeIn'); let v = ''; try { v = localStorage.getItem('qc_per_de') || ''; } catch (x) {} i.value = v || iso(hojePc());
+  if (v && PER !== 'desde') { PER = 'desde'; try { localStorage.setItem('qc_per', PER); } catch (x) {} periodo(); }   // 1º toque usa a data guardada; tocar de novo troca a data
+  else { try { i.showPicker(); } catch (x) { i.focus(); i.click(); } } }
+ else if (t.dataset.per) { PER = t.dataset.per; try { localStorage.setItem('qc_per', PER); } catch (x) {} periodo(); }
+ else if (t.dataset.ga) { const x = (D.ativos || [])[+t.dataset.ga - 1]; if (!x) return; GTF = +t.dataset.tf; try { localStorage.setItem('qc_gtf', GTF); } catch (y) {} grafAtivos();
+  grAbre({id: -(+t.dataset.ga * 100 + GTF), nome: x.sym + ' · ' + GTF + ' min', estrategia: 'Todas as automações', sym: x.sym, tf: GTF}); }
  else if (t.dataset.g && a) grAbre(a);
  else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
  else if (t.dataset.f) { FILTRO = null; desenha(); }
@@ -244,9 +319,10 @@ function grPrepara(enquadra = true) {
  GR.N = d.c.length;
  const tot = d.ops.reduce((s, o) => s + o.pnl, 0), ab = d.aberta;
  $('grInfo').innerHTML = `<div style="margin-bottom:6px"><b style="color:var(--txt)">${esc(d.ind.nome || 'Sem indicador próprio')}</b> · ${esc(d.dia)}</div>`
+  + (d.abertas || []).map(x => `<div style="margin-bottom:4px">Aberta: <b style="color:var(--txt)">${esc(x.n)}</b> · ${esc(x.pos)} a ${x.e} · <span class="${cls(x.aberto)}">${brl(x.aberto)}</span></div>`).join('')
   + (ab ? `<div style="margin-bottom:6px">Posição aberta: <b style="color:var(--txt)">${esc(ab.pos)}</b> a ${ab.e} · <span class="${cls(ab.aberto)}">${brl(ab.aberto)}</span></div>` : '')
   + `<div>Operações: <b style="color:var(--txt)">${d.ops.length}</b> · Resultado: <b class="${cls(tot)}">${brl(tot)}</b></div>`
-  + d.ops.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span><div>${new Date(o.t0).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}→${new Date(o.t).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})} · ${o.e} → ${o.s} · ${esc(o.m)}</div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('');
+  + (d.geral && !d.ops.length ? '<div class="vazio">Nenhuma operação das automações neste ativo hoje.</div>' : '') + d.ops.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span><div>${o.n ? `<b style="color:var(--txt)">${esc(o.n)}</b><br>` : ''}${new Date(o.t0).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}→${new Date(o.t).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})} · ${o.e} → ${o.s} · ${esc(o.m)}</div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('');
  grDesenha();
 }
 function grIdx(d, t) { const c = d.c; let a = 0, b = c.length - 1; if (t <= c[0][0]) return 0; if (t >= c[b][0]) return b; while (b - a > 1) { const m = (a + b) >> 1; if (c[m][0] <= t) a = m; else b = m; } return a; }
@@ -286,14 +362,16 @@ function grDesenha() {
   for (let i = ini; i < Math.min(fim, ln.v.length); i++) { const v = ln.v[i]; if (v == null) { on = false; continue; } on ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)); on = true; } g.stroke(); g.setLineDash([]); });
  (d.ind.pontos || []).forEach(pt => { for (let i = ini; i < Math.min(fim, pt.v.length); i++) { const v = pt.v[i]; if (v == null) continue; g.fillStyle = pt.tend ? (pt.tend[i] > 0 ? '#22c55e' : '#ef4444') : pt.cor; g.beginPath(); g.arc(X(i), Y(v), Math.max(1.5, Math.min(3, z * .18)), 0, 7); g.fill(); } });
  (d.ind.marcas || []).forEach(m => { if (m.i < ini || m.i >= fim) return; const k = d.c[m.i], x = X(m.i), up = m.lado === 'C', y = up ? Y(k[3]) + 10 : Y(k[2]) - 10; g.fillStyle = up ? '#22c55e' : '#ef4444'; g.beginPath(); g.moveTo(x, up ? y - 6 : y + 6); g.lineTo(x - 5, up ? y + 4 : y - 4); g.lineTo(x + 5, up ? y + 4 : y - 4); g.closePath(); g.fill(); });
- // operações da automação
+ // operações (no gráfico do ativo, de todas as automações); saídas no mesmo candle = um valor só, com a soma
+ const somaS = {}; d.ops.forEach(o => { const k = grIdx(d, o.t); somaS[k] = (somaS[k] || 0) + o.pnl; }); const feito = {};
  d.ops.forEach(o => {
   const i0 = grIdx(d, o.t0), i1 = grIdx(d, o.t); if (i1 < ini || i0 >= fim) return;
   const x0 = X(i0), x1 = X(i1), y0 = Y(o.e), y1 = Y(o.s), cor = o.pnl >= 0 ? '#4ade80' : '#f87171';
   g.strokeStyle = cor; g.setLineDash([4, 3]); g.lineWidth = 1.4; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.setLineDash([]);
   const up = o.lado === 'C'; g.fillStyle = up ? '#38bdf8' : '#fb923c'; g.beginPath(); g.moveTo(x0, y0 + (up ? -7 : 7)); g.lineTo(x0 - 6, y0 + (up ? 4 : -4)); g.lineTo(x0 + 6, y0 + (up ? 4 : -4)); g.closePath(); g.fill();
   g.fillStyle = cor; g.beginPath(); g.arc(x1, y1, 4, 0, 7); g.fill();
-  g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText((o.pnl >= 0 ? '+' : '') + Math.round(o.pnl), x1, y1 + (y1 < 14 ? 14 : -7));
+  const ks = i1; if (feito[ks]) return; feito[ks] = 1; const sv = somaS[ks];
+  g.fillStyle = sv >= 0 ? '#4ade80' : '#f87171'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText((sv >= 0 ? '+' : '') + Math.round(sv), x1, y1 + (y1 < 14 ? 14 : -7));
  });
  if (d.aberta) { const ab = d.aberta, lh = (v, cor, rot) => { if (v == null) return; const y = Y(v); g.strokeStyle = cor; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.fillStyle = cor; g.textAlign = 'right'; g.font = 'bold 10px sans-serif'; g.fillText(rot, cw - 4, y - 3); };
   lh(ab.e, '#e2e8f0', (ab.lado === 'C' ? 'COMPRADO ' : 'VENDIDO ') + ab.e); (ab.sl || []).forEach(v => lh(v, '#ef4444', 'STOP ' + v)); (ab.tp || []).forEach(v => lh(v, '#22c55e', 'ALVO ' + v)); }
@@ -305,7 +383,7 @@ function grDesenha() {
  g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'center'; const passo = Math.max(1, Math.ceil(70 / z));
  for (let i = ini; i < Math.min(fim, d.c.length); i += passo) g.fillText(new Date(d.c[i][0]).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), Math.min(cw - 16, Math.max(16, X(i))), ch + 12);
 }
-function grEnquadra() { const d = GR.d; GR.man = null; if (!d) return; GR.n = Math.max(25, Math.min(d.c.length - d.ini, 120)); GR.fim = d.c.length + 2; }
+function grEnquadra() { const d = GR.d; GR.man = null; if (!d) return; GR.n = Math.max(25, Math.min(d.c.length - d.ini + 4, 120)); GR.fim = d.c.length + 2; }
 // Gestos como no gráfico do PC (pedido do usuário em 9/11/2026: "quero poder mexer igual ao gráfico no PC: zoom, pra cima, pra baixo,
 // pra trás, pra frente"): 1 dedo arrasta para os lados e para cima/baixo; pinça na horizontal = zoom do tempo, na vertical = zoom do
 // preço (os dois na diagonal), centrada nos dedos; arrastar a escala de preço (direita) estica/encolhe; a de tempo (embaixo) dá zoom;
