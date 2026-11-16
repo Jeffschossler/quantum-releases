@@ -58,7 +58,17 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 .chips{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}.chips b{background:#0d1526;border:1px solid var(--borda);border-radius:99px;padding:5px 12px;font-size:13px;color:var(--sub);cursor:pointer}.chips b.on{background:#0c2a43;border-color:#38bdf8;color:#e0f2fe}
 .per-at{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13.5px}.per-at:last-child{border:0}.per-at span{color:var(--sub);font-size:12px}
 .at-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.at-g h3{margin:0;font-size:17px}.at-g .sub{font-size:12.5px;color:var(--sub);width:100%}.tfs{display:flex;gap:6px;width:100%;margin-top:4px}.tfs button{background:#0c2a43;color:#e0f2fe;border:1px solid #1e3a5f;padding:10px 0}
-#grInfo .op{padding:6px 0}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
+#grInfo .op{padding:6px 0}
+#sa{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:9}#sa.on{display:flex}
+#sa>div{background:var(--card);border-top:1px solid var(--borda);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:720px;margin:0 auto;max-height:88vh;overflow:auto}
+#sa h3{margin:0 0 2px;font-size:17px}#sa .sub{color:var(--sub);font-size:12.5px;margin-bottom:8px}
+.sa-l{border:1px solid var(--borda);border-radius:12px;padding:10px;margin:8px 0;background:#0d1526}.sa-l .lt{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px}
+.sa-l .lt b.st{color:#fca5a5}.sa-l .lt b.al{color:#86efac}.sa-l .lt span{color:var(--sub);font-size:12px}
+.sa-r{display:grid;grid-template-columns:48px 1fr 48px;gap:8px}.sa-r button{padding:10px 0;font-size:20px;background:#1e293b;color:var(--txt);border:1px solid #334155}
+.sa-r input{min-width:0;width:100%;text-align:center;font:inherit;font-size:18px;font-weight:700;background:#0b1220;color:var(--txt);border:1px solid #334155;border-radius:10px;padding:8px}
+.sa-b{display:flex;gap:8px;margin-top:8px}.sa-b button{padding:10px;font-size:14px}.sa-env{background:#1d4ed8;color:#fff}.sa-0x0{background:#0c2a43;color:#bae6fd;border:1px solid #1e3a5f}
+body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}   /* com o painel aberto o aviso fica em cima (embaixo cobria o Enviar) */
+.b-sa{background:none;border:0;color:var(--amar);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 </style>
 </head>
 <body>
@@ -91,7 +101,8 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 </main>
 <nav id="nav" style="display:none"><b class="on" data-s="hoje"><span>📊</span>Hoje</b><b data-s="autos"><span>🤖</span>Automações</b><b data-s="ops"><span>📋</span>Operações</b><b data-s="graf"><span>📈</span>Gráfico</b></nav>
 <div id="gr"><header><button id="grVolta" aria-label="Voltar">‹</button><div id="grTit"><b></b><span></span></div><span id="grAt" style="margin-left:auto;font-size:12px;color:var(--sub)"></span></header>
- <div id="grSt"></div><div id="grArea"><canvas id="grCv"></canvas><div id="grBts"><button id="grAj" title="Ajustar o gráfico na tela">⟲ Ajustar</button><button id="grFim" title="Ir para o candle atual">≫</button><button id="grPain" title="Mostrar/esconder as operações">▾</button></div></div><div id="grInfo"></div></div>
+ <div id="grSt"></div><div id="grArea"><canvas id="grCv"></canvas><div id="grBts"><button id="grAj" title="Ajustar o gráfico na tela">⟲ Ajustar</button><button id="grFim" title="Ir para o candle atual">≫</button><button id="grPain" title="Mostrar/esconder as operações">▾</button><button id="grSa" title="Mexer no stop e no alvo da operação aberta" style="display:none">🎯 Stop e alvo</button></div></div><div id="grInfo"></div></div>
+<div id="sa"><div id="saCorpo"></div></div>
 <div id="modal"><div><h3 id="mT"></h3><p id="mP"></p><div class="bts"><button class="b-pausa" id="mNao">Cancelar</button><button class="b-enc" id="mSim">Confirmar</button></div></div></div>
 <div id="toast"></div>
 <script>
@@ -124,7 +135,7 @@ function desenha() {
  $('st').className = on ? 'on' : 'off'; $('st').lastChild.textContent = on ? 'PC ao vivo' : 'PC offline · ' + new Date(ULT.atualizado).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
  $('avisoPc').innerHTML = on ? '' : `<div class="aviso">⚠ A plataforma do PC não manda dados há ${atraso > 3600 ? Math.round(atraso / 3600) + ' h' : Math.round(atraso / 60) + ' min'}. Os valores abaixo são do último envio. Pedidos só são feitos com o PC ligado e a plataforma aberta.</div>`;
  // pedidos já feitos pelo PC: tira o "⏳" ANTES de desenhar os cartões
- (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast('✔ ' + (c.resultado || 'feito').replace(/^ok: /, '')); } });
+ (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast((/^erro/.test(c.resultado || '') ? '⚠ ' : '✔ ') + (c.resultado || 'feito').replace(/^(ok|erro): /, '')); } });
  const autos = D.autos || [], ops = (D.hoje || []).slice().sort((a, b) => a.t - b.t);
  const dia = autos.reduce((s, a) => s + (a.dia || 0), 0), aberto = autos.reduce((s, a) => s + (a.aberto || 0), 0), ganhos = ops.filter(o => o.pnl > 0).length;
  $('hDia').textContent = brl(dia); $('hDia').className = 'big ' + cls(dia);
@@ -133,7 +144,8 @@ function desenha() {
  const c = D.conta, m = D.manual || {};
  $('cConta').innerHTML = `<div class="lbl">Conta e operações manuais</div>` + (c ? `<div style="margin-top:6px">MT5 ${esc(c.login)}${c.demo ? ' (demo)' : ''} · Saldo <b>${esc(c.moeda)} ${Number(c.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b> · Patrimônio <b>${Number(c.patrimonio).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b></div>` : '<div class="sub" style="margin-top:6px;color:var(--sub)">MT5 desconectado</div>')
   + `<div style="margin-top:6px">Manual hoje: Simulação <b class="${cls(m.sim)}">${brl(m.sim || 0)}</b>${m.mt5 != null ? ` · MT5 <b class="${cls(m.mt5)}">${brl(m.mt5)}</b>` : ''}</div>`;
- curva(ops); barras(autos); porAtivo(autos); periodo(); grafAtivos();
+ curva(ops); barras(autos); porAtivo(autos); periodo(); grafAtivos(); saAtualiza();
+ if (GR.a && GR.a.id > 0) { const x = autos.find(y => y.id === GR.a.id); $('grSa').style.display = x && x.trade ? '' : 'none'; }
  // automações
  // só as que estão rodando (pedido do usuário em 10/11/2026): ligadas, no gerente de risco, posicionadas ou desligadas hoje pelo limite do dia
  const rodando = a => a.on || a.gerente || (a.pos && a.pos !== 'Zerado') || a.fim;
@@ -150,7 +162,7 @@ function desenha() {
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
-   <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-graf" data-g="${a.id}">📈 Gráfico</button><button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
+   <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-graf" data-g="${a.id}">📈 Gráfico</button>${a.trade ? `<button class="b-sa" data-sa="${a.id}">🎯 Stop e alvo</button>` : ''}<button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
  }).join('') + (!autos.length ? '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>' : !ord.length ? '<div class="card vazio">Nenhuma automação rodando agora. Toque em "Mostrar todas" para ligar uma.</div>' : '');
  $('bTodas').disabled = !autos.some(a => a.on);
  // operações
@@ -239,6 +251,79 @@ function curvaPer(porDia) {                                         // barras de
  porDia.forEach(([d], i) => { if (i % passo === 0 || i === n - 1) g.fillText(d.slice(8) + '/' + d.slice(5, 7), X(i), h - 4); });
  g.textAlign = 'right'; g.fillStyle = acc >= 0 ? '#4ade80' : '#f87171'; g.font = 'bold 11px sans-serif'; g.fillText('acumulado ' + brl(acc), w - 4, 11);
 }
+// ---------- mexer no stop e no alvo da operação ABERTA de uma automação (pedido do usuário em 16/11/2026: "quero poder mexer no stop,
+// parcial e alvo das automações, tanto pelo PC quanto pelo celular") ----------
+// O resumo traz a operação aberta (a.trade: entrada, saídas, preço atual, tick). Cada linha distinta (stop; parcial e alvo final) tem
+// − / + (passo escolhido), o campo para digitar e Enviar; o stop tem "0x0". O pedido "saida" vai com os dados (qt_comandar2, SQL
+// docs/supabase_celular_saida.sql) e o PC (Engine.mexe_saida) confere: stop/alvo do lado certo do preço, perto do preço atual.
+const SA = {id: null, passo: 10};
+try { SA.passo = +localStorage.getItem('qc_sa_passo') || 10; } catch (e) {}
+function saLinhas(t) {                                               // as linhas distintas: stop(s) e alvo(s), com as saídas de cada uma
+ const L = [];
+ t.legs.forEach((l, i) => [['sl', l.sl], ['tp', l.tp]].forEach(([tipo, v]) => { if (!v) return; const x = L.find(y => y.tipo === tipo && Math.abs(y.v - v) < 1e-9); if (x) { x.saidas.push(i + 1); x.q += l.q; } else L.push({tipo, v, saidas: [i + 1], q: l.q}); }));
+ const tps = L.filter(x => x.tipo === 'tp').sort((a, b) => Math.abs(a.v - t.e) - Math.abs(b.v - t.e));
+ tps.forEach((x, k) => x.nome = tps.length > 1 ? (k === tps.length - 1 ? 'Alvo final' : k === 0 ? 'Parcial' : 'Alvo ' + (k + 1)) : 'Alvo');
+ L.filter(x => x.tipo === 'sl').forEach((x, k, arr) => x.nome = arr.length > 1 ? 'Stop ' + (k + 1) : 'Stop');
+ return L.sort((a, b) => (a.tipo === 'sl' ? 0 : 1) - (b.tipo === 'sl' ? 0 : 1) || Math.abs(a.v - t.e) - Math.abs(b.v - t.e));
+}
+const saFmt = (v, dg) => v == null ? '–' : Number(v).toLocaleString('pt-BR', {minimumFractionDigits: dg, maximumFractionDigits: dg});
+function saAbre(id) {
+ const a = ((D && D.autos) || []).find(x => x.id === id); if (!a || !a.trade) return toast('Esta automação não está posicionada');
+ SA.id = id; $('sa').classList.add('on'); saDesenha(a, true);
+}
+function saDesenha(a, tudo) {
+ const t = a.trade, dg = t.dg || 0, tk = t.tk || 1, L = saLinhas(t);
+ if (!tudo) { const px = $('saPx'); if (px) px.textContent = saFmt(t.px, dg); return; }
+ const passos = [1, 10, 50].map(n => `<b data-sap="${n}" class="${SA.passo === n ? 'on' : ''}">${saFmt(n * tk, dg)} pts</b>`).join('');
+ $('saCorpo').innerHTML = `<h3>🎯 Stop e alvo · ${esc(a.nome)}</h3>
+  <div class="sub">${t.buy ? 'Comprado' : 'Vendido'} ${saFmt(t.legs.reduce((s, l) => s + l.q, 0), 2)} a <b>${saFmt(t.e, dg)}</b> · preço agora <b id="saPx">${saFmt(t.px, dg)}</b> · ${a.conta === 'MT5' ? '<b style="color:#fca5a5">conta MT5</b>' : 'Simulação'}<br>Muda só esta operação; as próximas seguem a configuração da automação.</div>
+  <div class="chips" style="margin:4px 0 2px">Passo do − / +: ${passos}</div>
+  ${L.map((x, k) => `<div class="sa-l" data-k="${k}"><div class="lt"><b class="${x.tipo === 'sl' ? 'st' : 'al'}">${x.nome}</b><span>${x.saidas.length > 1 || t.legs.length > 1 ? 'saída' + (x.saidas.length > 1 ? 's ' : ' ') + x.saidas.join(' e ') + ' · ' : ''}${saFmt(x.q, 2)} · agora ${saFmt(x.v, dg)}</span></div>
+   <div class="sa-r"><button data-sam="-1">−</button><input inputmode="decimal" value="${saFmt(x.v, dg)}"><button data-sam="1">+</button></div>
+   <div class="sa-b">${x.tipo === 'sl' ? `<button class="sa-0x0" data-sa0="1">Stop no 0x0 (${saFmt(t.e, dg)})</button>` : ''}<button class="sa-env" data-saenv="1">Enviar</button></div></div>`).join('')}
+  <div class="sa-b"><button class="b-pausa" id="saFecha">Fechar</button></div>`;
+ SA.L = L;
+}
+function saAtualiza() {                                              // o painel aberto: a operação acabou? atualiza o preço
+ if (!SA.id || !$('sa').classList.contains('on')) return;
+ const a = ((D && D.autos) || []).find(x => x.id === SA.id);
+ if (!a || !a.trade) { $('sa').classList.remove('on'); SA.id = null; toast('A operação foi encerrada'); return; }
+ const mudou = JSON.stringify(saLinhas(a.trade).map(x => [x.tipo, x.v])) !== JSON.stringify((SA.L || []).map(x => [x.tipo, x.v]));
+ const editando = document.activeElement && document.activeElement.closest && document.activeElement.closest('#sa');
+ saDesenha(a, mudou && !editando);
+}
+const saLe = txt => { let s = String(txt || '').replace(/\s/g, ''); if (/,/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ''); return parseFloat(s); };
+async function saEnvia(a, x, para) {
+ const t = a.trade, tk = t.tk || 1, dg = t.dg || 0; para = +(Math.round(para / tk) * tk).toFixed(dg);
+ if (!(para > 0)) return toast('Preço inválido');
+ if (Math.abs(para - x.v) < 1e-9) return toast('O preço é o mesmo de agora');
+ const d = t.buy ? 1 : -1;
+ if (t.px != null && x.tipo === 'sl' && (t.px - para) * d <= 0) return toast('Esse stop já passou do preço atual: sairia na hora');
+ if (t.px != null && x.tipo === 'tp' && (para - t.px) * d <= 0) return toast('Esse alvo já passou do preço atual: use Encerrar para sair agora');
+ const vai = async () => {
+  try {
+   const n = await rpc('qt_comandar2', {p_token: COD, p_acao: 'saida', p_alvo: a.id, p_dados: {tipo: x.tipo, de: x.v, para}});
+   ESPERA[a.id] = 'mudando ' + x.nome.toLowerCase() + '…'; ESPERA['n' + a.id] = n; toast('Pedido enviado ao PC…'); setTimeout(atualiza, 2500);
+  } catch (e) {
+   toast(/qt_comandar2|could not find|function/i.test(e.message || '') ? 'O servidor ainda não aceita este pedido: rode o docs/supabase_celular_saida.sql no Supabase (uma vez).' : 'Não foi possível: ' + e.message);
+  }
+ };
+ const txt = `${x.nome}: ${saFmt(x.v, dg)} → ${saFmt(para, dg)}` + (a.conta === 'MT5' ? ' · conta MT5: muda a ordem de verdade.' : '');
+ confirma(`Mudar ${x.nome.toLowerCase()} de "${a.nome}"?`, txt, vai);
+}
+document.addEventListener('click', e => {
+ const el = e.target; if (!el.closest || !el.closest('#sa')) return;
+ if (el.id === 'saFecha' || el.id === 'sa') { $('sa').classList.remove('on'); SA.id = null; return; }
+ const a = ((D && D.autos) || []).find(x => x.id === SA.id); if (!a || !a.trade) return;
+ const p = el.closest('[data-sap]'); if (p) { SA.passo = +p.dataset.sap; try { localStorage.setItem('qc_sa_passo', SA.passo); } catch (x) {} document.querySelectorAll('#sa [data-sap]').forEach(b => b.classList.toggle('on', b === p)); return; }
+ const box = el.closest('.sa-l'); if (!box) return;
+ const x = SA.L[+box.dataset.k], inp = box.querySelector('input'), dg = a.trade.dg || 0, tk = a.trade.tk || 1;
+ if (el.closest('[data-sam]')) { const v = saLe(inp.value); inp.value = saFmt((isFinite(v) ? v : x.v) + (+el.closest('[data-sam]').dataset.sam) * SA.passo * tk, dg); return; }
+ if (el.closest('[data-sa0]')) return saEnvia(a, x, a.trade.e);
+ if (el.closest('[data-saenv]')) return saEnvia(a, x, saLe(inp.value));
+});
+$('sa').addEventListener('click', e => { if (e.target.id === 'sa') { $('sa').classList.remove('on'); SA.id = null; } });
+$('grSa').onclick = () => { if (GR.a) saAbre(GR.a.id); };
 // ---------- gráfico ao vivo do ativo (pedido do usuário em 16/11/2026) ----------
 // Pedido "grafico" com alvo negativo = -(posição do ativo na lista D.ativos × 100 + tempo gráfico); o PC manda os candles do dia, o preço
 // médio do dia e as operações de hoje de TODAS as automações nesse ativo (com o nome de cada uma).
@@ -261,7 +346,7 @@ async function pede(acao, alvo, rot) {
  catch (e) { toast('Não foi possível: ' + e.message); }
 }
 document.addEventListener('click', e => {
- const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga]'); if (!t) return;
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa]'); if (!t) return;
  const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
@@ -271,6 +356,7 @@ document.addEventListener('click', e => {
  else if (t.dataset.per) { PER = t.dataset.per; try { localStorage.setItem('qc_per', PER); } catch (x) {} periodo(); }
  else if (t.dataset.ga) { const x = (D.ativos || [])[+t.dataset.ga - 1]; if (!x) return; GTF = +t.dataset.tf; try { localStorage.setItem('qc_gtf', GTF); } catch (y) {} grafAtivos();
   grAbre({id: -(+t.dataset.ga * 100 + GTF), nome: x.sym + ' · ' + GTF + ' min', estrategia: 'Todas as automações', sym: x.sym, tf: GTF}); }
+ else if (t.dataset.sa) saAbre(+t.dataset.sa);
  else if (t.dataset.g && a) grAbre(a);
  else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
  else if (t.dataset.f) { FILTRO = null; desenha(); }
@@ -287,6 +373,7 @@ $('bTodas').onclick = () => confirma('Pausar todas?', 'Todas as automações par
 // servidor; o celular lê (qt_grafico_ler). Atualiza a cada 30 s com o gráfico aberto. Um dedo arrasta, dois dedos dão zoom.
 const GR = {a: null, d: null, ult: null, tm: null, n: 60, fim: 0, pede: 0};
 function grAbre(a) {
+ { const x = a.id > 0 && ((D && D.autos) || []).find(y => y.id === a.id); $('grSa').style.display = x && x.trade ? '' : 'none'; }   // 🎯 só no gráfico de uma automação posicionada
  GR.a = a; GR.d = null; GR.ult = null; $('gr').classList.add('on'); $('grTit').firstChild.textContent = a.nome; $('grTit').lastChild.textContent = `${a.estrategia} · ${a.sym} ${a.tf} min`;
  $('grInfo').innerHTML = ''; $('grSt').textContent = '⏳ Pedindo o gráfico ao PC…'; grDesenha();
  try { const c = JSON.parse(localStorage.getItem('qc_graf_' + a.id) || 'null'); if (c) { GR.d = c; grPrepara(); $('grSt').textContent = '⏳ Atualizando… (mostrando o último recebido)'; } } catch (e) {}
