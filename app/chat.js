@@ -88,6 +88,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #chVer{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:8;display:none;flex-direction:column}#chVer.on{display:flex}
 #chVer img{flex:1;min-height:0;object-fit:contain;width:100%}#chVer div{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
 #chVer button{background:#1e293b;color:#e2e8f0;border:1px solid #334155}
+.ch-auto{margin:6px 0 2px;padding:8px 10px;border:1px solid #334155;border-radius:8px;background:rgba(37,99,235,.12);display:flex;flex-direction:column;gap:6px}.ch-auto b{font-size:13px}.ch-auto button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:7px 10px;font-weight:700;cursor:pointer}
 html.pc-modo body > header,html.pc-modo main,html.pc-modo nav{display:none!important}html.pc-modo #chat header{padding-top:8px}
 nav b .ch-nb{position:absolute;margin:-4px 0 0 -6px;background:var(--verde);color:#052e1a;border-radius:99px;font-size:10px;font-weight:800;padding:0 5px;font-style:normal}
 </style>`);
@@ -179,6 +180,24 @@ async function entrar(chave) {
 }
 
 // ---------- conversa ----------
+// ---------- automação compartilhada (17/11/2026): o código QTA1… vira um cartão com "Importar na plataforma" ----------
+const QTA_RE = /QTA1z?\.[A-Za-z0-9_-]{16,}/;
+function chTextoMsg(t) {
+ const m = String(t).match(QTA_RE); if (!m) return esc(t);
+ const resto = String(t).replace(QTA_RE, '').trim();
+ return esc(resto) + `<div class="ch-auto"><b>⚙ Automação compartilhada</b><button type="button" data-qta="${m[0]}">${PC ? '⬇ Importar na plataforma' : '📋 Copiar para importar na plataforma'}</button></div>`;
+}
+// a plataforma manda o texto para compartilhar: aparece pronto na conversa aberta (ou na próxima que o usuário abrir)
+let CH_PEND = '';
+function chAplicaPend() {
+ if (!CH_PEND) return;
+ if (CH.tela === 'conversa' && $('chTx')) { $('chTx').value = CH_PEND; CH_PEND = ''; $('chTx').focus(); try { $('chTx').dispatchEvent(new Event('input')); } catch (e) {} toast('Mensagem pronta: confira e clique em ➤'); }
+ else toast('Escolha o grupo: a automação aparece pronta para enviar');
+}
+addEventListener('message', e => {
+ const d = e.data; if (!PC || e.source !== parent || !d || typeof d.qc_compartilhar !== 'string') return;
+ const novo = CH_PEND !== d.qc_compartilhar; CH_PEND = d.qc_compartilhar; avisaPai({comp_ok: 1}); if (novo) chAplicaPend();
+});
 async function conversa(id) {
  CH.tela = 'conversa'; CH.g = id; CH.msgs = []; CH.fim = false; clearTimeout(CH.t);
  const g = CH.grupos.find(x => x.id === id); topo(g ? g.nome : 'Grupo', g ? g.membros + ' membro(s)' : '', '<button id="chInfo">⚙</button>');
@@ -186,7 +205,7 @@ async function conversa(id) {
  $('chCorpo').innerHTML = '<div class="ch-vazio">Carregando…</div>';
  try { const x = await r('qt_chat_msgs', {p_grupo: id}); CH.eu = x.eu; CH.msgs = x.msgs; CH.fim = x.msgs.length < 60; CH.rec = x.rec; }
  catch (e) { erro(e); return lista(); }
- desenhaMsgs(true);
+ desenhaMsgs(true); chAplicaPend();
  if (!g) carregaGrupos().then(() => { const g2 = CH.grupos.find(x => x.id === id); if (g2 && CH.g === id) topo(g2.nome, g2.membros + ' membro(s)', '<button id="chInfo">⚙</button>'), $('chInfo').onclick = () => info(id); });
  CH.t = setTimeout(novas, 3000);
 }
@@ -218,7 +237,7 @@ function desenhaMsgs(desce) {
   else if (m.img) anexo = `<div class="ch-arq" data-arq="${m.img}"><i>${chIcone(m.anome, tp)}</i><div><b>${esc(m.anome || 'arquivo')}</b><small>${m.atam ? chTam(m.atam) + ' · ' : ''}toque para baixar</small></div></div>`;
   const tk = !eu ? '' : m.pend ? (m.erro ? ' <span class="tk" title="não enviada">⚠</span>' : ' <span class="tk" title="enviando">🕓</span>')
    : (CH.rec != null && m.id <= CH.rec ? ' <span class="tk ok2" title="recebida por todos do grupo">✓✓</span>' : ' <span class="tk" title="enviada (no servidor)">✓</span>');
-  h += `<div class="ch-m ${eu ? 'eu' : 'ele'}${m.pend ? ' pend' : ''}" data-m="${m.id}" data-pode="${(eu || dono) && !m.pend ? 1 : 0}">${eu ? '' : `<span class="ap">${esc(m.apelido || '?')}</span>`}${anexo}${m.texto ? esc(m.texto) : ''}<span class="hr">${new Date(m.criado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}${tk}</span></div>`;
+  h += `<div class="ch-m ${eu ? 'eu' : 'ele'}${m.pend ? ' pend' : ''}" data-m="${m.id}" data-pode="${(eu || dono) && !m.pend ? 1 : 0}">${eu ? '' : `<span class="ap">${esc(m.apelido || '?')}</span>`}${anexo}${m.texto ? chTextoMsg(m.texto) : ''}<span class="hr">${new Date(m.criado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}${tk}</span></div>`;
  });
  c.innerHTML = h || '<div class="ch-vazio">Nenhuma mensagem ainda. Diga oi! 👋</div>';
  const a = $('chAnt'); if (a) a.onclick = anteriores;
@@ -229,6 +248,9 @@ function desenhaMsgs(desce) {
   const u = await foto(id); sm.textContent = t0; if (!u) return toast('Não foi possível baixar o arquivo');
   const a = document.createElement('a'); a.href = u; a.download = (CH.nomes[id] || 'arquivo-' + id); document.body.appendChild(a); a.click(); a.remove(); });
  c.querySelectorAll('audio').forEach(a => a.onclick = e => e.stopPropagation());
+ c.querySelectorAll('[data-qta]').forEach(b => b.onclick = e => { e.stopPropagation(); const cod = b.dataset.qta;   // automação compartilhada
+  if (PC && parent !== window) { avisaPai({importar: cod}); toast('Abrindo a importação na plataforma…'); return; }
+  (navigator.clipboard ? navigator.clipboard.writeText(cod) : Promise.reject()).then(() => toast('Código copiado: na plataforma, Automações › 📥 Importar e cole'), () => prompt('Copie o código:', cod)); });
  c.querySelectorAll('.ch-m[data-pode="1"]').forEach(el => el.onclick = () => confirma('Apagar a mensagem?', 'Ela some para todos do grupo.', () => apagar(+el.dataset.m)));
  if (noFim) c.scrollTop = c.scrollHeight;
 }
