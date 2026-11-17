@@ -55,6 +55,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 #grTit{display:flex;flex-direction:column;min-width:0}#grTit b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#grTit span{font-size:12px;color:var(--sub)}
 #grArea{flex:1;min-height:0;position:relative}#grCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}#grBts{position:absolute;left:8px;bottom:26px;display:flex;gap:6px;opacity:.9}#grBts button{background:rgba(15,23,42,.82);border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;width:auto;flex:none}#gr.sem-info #grInfo{display:none}#grInfo{padding:8px 14px 10px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--borda);max-height:34vh;overflow:auto}
 .lin-at{display:grid;grid-template-columns:52px 1fr auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13px}.lin-at:last-child{border:0}.lin-at span{color:var(--sub);font-size:12px}
+.conta-f{margin:0 0 10px}.conta-f b{flex:1;text-align:center}
 .chips{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}.chips b{background:#0d1526;border:1px solid var(--borda);border-radius:99px;padding:5px 12px;font-size:13px;color:var(--sub);cursor:pointer}.chips b.on{background:#0c2a43;border-color:#38bdf8;color:#e0f2fe}
 .per-at{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--borda);font-size:13.5px}.per-at:last-child{border:0}.per-at span{color:var(--sub);font-size:12px}
 .at-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.at-g h3{margin:0;font-size:17px}.at-g .sub{font-size:12.5px;color:var(--sub);width:100%}.tfs{display:flex;gap:6px;width:100%;margin-top:4px}.tfs button{background:#0c2a43;color:#e0f2fe;border:1px solid #1e3a5f;padding:10px 0}
@@ -80,6 +81,7 @@ body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}  
  </div>
  <div id="app" style="display:none">
   <div id="avisoPc"></div>
+  <div class="chips conta-f" id="contaF"><b data-cf="">Todas</b><b data-cf="sim">🧪 Simulação</b><b data-cf="mt5" id="cfMt5">💰 Conta real</b></div>
   <section class="sec on" id="s-hoje">
    <div class="card"><div class="lbl">Resultado do dia · automações</div><div class="big" id="hDia">–</div>
     <div class="grid"><div><span class="lbl">Aberto</span><b id="hAberto">–</b></div><div><span class="lbl">Operações</span><b id="hOps">–</b></div><div><span class="lbl">Acerto</span><b id="hAcerto">–</b></div></div></div>
@@ -129,6 +131,16 @@ async function atualiza() {
   D = r.dados || {}; ULT = r; desenha();
  } catch (e) { $('st').className = 'off'; $('st').lastChild.textContent = 'sem internet'; }
 }
+// FILTRO DE CONTA (pedido do usuário em 17/11/2026: "selecionar entre conta simulação e conta real, para separar as automações e não dar
+// confusão"): vale para Hoje, Automações, Operações, resultado por período e Gráfico. '' = todas, 'sim' = Simulação, 'mt5' = conta MT5.
+let CONTA_F = ''; try { CONTA_F = localStorage.getItem('qc_conta') || ''; } catch (e) {}
+const contaOk = c => !CONTA_F || (CONTA_F === 'mt5') === (c === 'MT5' || c === 'M');
+function contaNome() { return CONTA_F === 'sim' ? 'Simulação' : CONTA_F === 'mt5' ? (D && D.conta && D.conta.demo ? 'conta MT5 demo' : 'conta real') : ''; }
+function grFiltra(d) {                                               // gráfico do ativo (todas as automações): só as da conta escolhida
+ if (!d || !d.geral || !CONTA_F) return d;
+ const ok = x => x.c == null || contaOk(x.c);
+ return Object.assign({}, d, {ops: (d.ops || []).filter(ok), abertas: (d.abertas || []).filter(ok), ind: Object.assign({}, d.ind, {niveis: (d.ind.niveis || []).filter(ok)})});
+}
 function desenha() {
  $('semCodigo').style.display = 'none'; $('app').style.display = 'block'; $('nav').style.display = 'flex';
  const atraso = (new Date(ULT.agora) - new Date(ULT.atualizado)) / 1000, on = atraso < 30;
@@ -136,7 +148,9 @@ function desenha() {
  $('avisoPc').innerHTML = on ? '' : `<div class="aviso">⚠ A plataforma do PC não manda dados há ${atraso > 3600 ? Math.round(atraso / 3600) + ' h' : Math.round(atraso / 60) + ' min'}. Os valores abaixo são do último envio. Pedidos só são feitos com o PC ligado e a plataforma aberta.</div>`;
  // pedidos já feitos pelo PC: tira o "⏳" ANTES de desenhar os cartões
  (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast((/^erro/.test(c.resultado || '') ? '⚠ ' : '✔ ') + (c.resultado || 'feito').replace(/^(ok|erro): /, '')); } });
- const autos = D.autos || [], ops = (D.hoje || []).slice().sort((a, b) => a.t - b.t);
+ document.querySelectorAll('#contaF b').forEach(b => b.classList.toggle('on', b.dataset.cf === CONTA_F));
+ $('cfMt5').textContent = D.conta && D.conta.demo ? "💰 MT5 demo" : "💰 Conta real";
+ const autos = (D.autos || []).filter(a => contaOk(a.conta)), ops = (D.hoje || []).filter(o => contaOk(o.conta)).slice().sort((a, b) => a.t - b.t);
  const dia = autos.reduce((s, a) => s + (a.dia || 0), 0), aberto = autos.reduce((s, a) => s + (a.aberto || 0), 0), ganhos = ops.filter(o => o.pnl > 0).length;
  $('hDia').textContent = brl(dia); $('hDia').className = 'big ' + cls(dia);
  $('hAberto').textContent = brl(aberto); $('hAberto').className = cls(aberto);
@@ -163,13 +177,14 @@ function desenha() {
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
    <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-graf" data-g="${a.id}">📈 Gráfico</button>${a.trade ? `<button class="b-sa" data-sa="${a.id}">🎯 Stop e alvo</button>` : ''}<button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
- }).join('') + (!autos.length ? '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>' : !ord.length ? '<div class="card vazio">Nenhuma automação rodando agora. Toque em "Mostrar todas" para ligar uma.</div>' : '');
- $('bTodas').disabled = !autos.some(a => a.on);
+ }).join('') + (!autos.length ? `<div class="card vazio">Nenhuma automação ${CONTA_F ? 'na ' + contaNome() : 'configurada na plataforma'}.</div>` : !ord.length ? '<div class="card vazio">Nenhuma automação rodando agora. Toque em "Mostrar todas" para ligar uma.</div>' : '');
+ $('bTodas').disabled = !(D.autos || []).some(a => a.on);
+ $('bTodas').textContent = CONTA_F ? '⏸ Pausar todas as automações (Simulação e MT5)' : '⏸ Pausar todas as automações';
  // operações
  const fa = FILTRO != null && autos.find(a => a.id === FILTRO), opsF = fa ? ops.filter(o => o.id === FILTRO) : ops;
  $('listaOps').innerHTML = (fa ? `<div class="filtro">Só: ${esc(fa.nome)} · ${brl(opsF.reduce((s, o) => s + o.pnl, 0))}<b data-f="1">✕</b></div>` : '') + (opsF.length ? opsF.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span>
    <div><b>${esc(o.nome)}</b><div style="color:var(--sub);font-size:12.5px">${esc(o.sym)} · ${o.qtd} · ${hora(o.t0 || o.t)}→${hora(o.t)} · ${esc(o.motivo)}</div></div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('')
-  : `<div class="vazio">Nenhuma operação encerrada hoje${fa ? ' por esta automação' : ''}.</div>`);
+  : `<div class="vazio">Nenhuma operação encerrada hoje${fa ? ' por esta automação' : CONTA_F ? ' na ' + contaNome() : ''}.</div>`);
 }
 function fit(cv) { const r = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; cv.width = w * r; cv.height = h * r; const g = cv.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); return [g, w, h]; }
 function curva(ops) {
@@ -219,8 +234,10 @@ function periodo() {
  if (PER === 'desde' && /^\d{4}-\d\d-\d\d$/.test(pde)) { const [a, m, d] = pde.split('-'); ini.setFullYear(+a, +m - 1, +d); }   // "Desde…": a data que o usuário escolheu (ex.: o início do teste)
  else if (PER === 'semana' || PER === 'desde') ini.setDate(ini.getDate() - ((ini.getDay() + 6) % 7)); else if (PER === 'mes') ini.setDate(1); else ini.setDate(ini.getDate() - (+PER - 1));
  const de = iso(ini), dias = new Map();
- (D.dias || []).forEach(([d, x]) => { if (d >= de && d < hj) dias.set(d, x); });
- const h = {}; (D.hoje || []).forEach(o => { const x = h[o.id] || (h[o.id] = [0, 0, 0]); x[0] += o.pnl; x[1]++; x[2] += o.pnl > 0; }); if (Object.keys(h).length) dias.set(hj, h);
+ const cmap = Object.assign({}, D.contas || {}); (D.autos || []).forEach(a => { if (cmap[a.id] == null) cmap[a.id] = a.conta; });
+ const so = x => { if (!CONTA_F) return x; const y = {}; Object.entries(x).forEach(([id, v]) => { if (contaOk(cmap[id])) y[id] = v; }); return Object.keys(y).length ? y : null; };
+ (D.dias || []).forEach(([d, x]) => { const y = d >= de && d < hj && so(x); if (y) dias.set(d, y); });
+ const h = {}; (D.hoje || []).filter(o => contaOk(o.conta)).forEach(o => { const x = h[o.id] || (h[o.id] = [0, 0, 0]); x[0] += o.pnl; x[1]++; x[2] += o.pnl > 0; }); if (Object.keys(h).length) dias.set(hj, h);
  const nomes = Object.assign({}, D.nomes || {}); (D.autos || []).forEach(a => nomes[a.id] = a.nome); (D.hoje || []).forEach(o => nomes[o.id] = nomes[o.id] || o.nome);
  const lst = [...dias.keys()].sort(), porDia = lst.map(d => [d, Object.values(dias.get(d)).reduce((s, v) => s + v[0], 0)]), pa = {};
  let ops = 0, gan = 0; lst.forEach(d => Object.entries(dias.get(d)).forEach(([id, v]) => { const x = pa[id] || (pa[id] = [0, 0, 0, 0, 0]); x[0] += v[0]; x[1] += v[1]; x[2] += v[2]; x[3]++; x[4] += v[0] > 0; ops += v[1]; gan += v[2]; }));
@@ -233,7 +250,7 @@ function periodo() {
  const fx = (id, v) => { $(id).textContent = lst.length ? brl(v) : '–'; $(id).className = lst.length ? cls(v) : ''; };
  fx('pMed', lst.length ? tot / lst.length : 0); fx('pMel', Math.max(...vs, 0)); fx('pPior', Math.min(...vs, 0));
  $('pAutos').innerHTML = Object.entries(pa).sort((a, b) => b[1][0] - a[1][0]).map(([id, x]) => `<div class="per-at"><div><b>${esc(nomes[id] || 'Automação #' + id)}</b><br><span>${x[1]} op. · acerto ${x[1] ? Math.round(x[2] / x[1] * 100) : 0}% · ${x[4]} de ${x[3]} dia(s) +</span></div><span></span><b class="${cls(x[0])}">${brl(x[0])}</b></div>`).join('')
-  || '<div class="vazio">Nenhuma operação das automações neste período.</div>';
+  || `<div class="vazio">Nenhuma operação das automações neste período${CONTA_F ? ' na ' + contaNome() : ''}.</div>`;
  curvaPer(porDia);
 }
 function curvaPer(porDia) {                                         // barras de cada dia + curva acumulada (verde acima de zero, vermelha abaixo)
@@ -329,13 +346,15 @@ $('grSa').onclick = () => { if (GR.a) saAbre(GR.a.id); };
 // médio do dia e as operações de hoje de TODAS as automações nesse ativo (com o nome de cada uma).
 let GTF = 5; try { GTF = +localStorage.getItem('qc_gtf') || 5; } catch (e) {}
 function grafAtivos() {
- const at = D.ativos || [], hoje = D.hoje || [];
- $('listaGraf').innerHTML = at.length ? at.map((x, k) => { const ops = hoje.filter(o => o.sym === x.sym), r = ops.reduce((s, o) => s + o.pnl, 0);
+ const at = D.ativos || [], hoje = (D.hoje || []).filter(o => contaOk(o.conta)), aus = (D.autos || []).filter(a => contaOk(a.conta));
+ const vis = at.map((x, k) => [x, k]).filter(([x]) => !CONTA_F || aus.some(a => a.sym === x.sym))
+  .map(([x, k]) => [CONTA_F ? Object.assign({}, x, {n: aus.filter(a => a.sym === x.sym).length, on: aus.filter(a => a.sym === x.sym && a.on).length}) : x, k]);
+ $('listaGraf').innerHTML = vis.length ? vis.map(([x, k]) => { const ops = hoje.filter(o => o.sym === x.sym), r = ops.reduce((s, o) => s + o.pnl, 0);
   return `<div class="card at-g"><h3>${esc(x.sym)}</h3><span style="margin-left:auto" class="${cls(r)}"><b>${brl(r)}</b></span>
    <div class="sub">${x.n} automação(ões) neste ativo · ${x.on} ligada(s) · ${ops.length} operação(ões) hoje</div>
    <div class="tfs">${[1, 2, 5, 10, 15].map(tf => `<button data-ga="${k + 1}" data-tf="${tf}" ${tf === GTF ? 'style="border-color:#38bdf8;background:#075985"' : ''}>${tf} min</button>`).join('')}</div></div>`; }).join('')
-  + '<div class="vazio" style="padding-top:4px">Candles do dia, o preço médio do dia e as entradas e saídas de todas as automações no ativo. Para ver uma automação sozinha, com o indicador dela: aba Automações › 📈 Gráfico.</div>'
-  : D.ativos ? '<div class="card vazio">Nenhuma automação configurada na plataforma.</div>'
+  + '<div class="vazio" style="padding-top:4px">Candles do dia, o preço médio do dia e as entradas e saídas de todas as automações no ativo' + (CONTA_F ? ' (só as da ' + contaNome() + ')' : '') + '. Para ver uma automação sozinha, com o indicador dela: aba Automações › 📈 Gráfico.</div>'
+  : D.ativos ? `<div class="card vazio">Nenhuma automação ${CONTA_F ? 'na ' + contaNome() : 'configurada na plataforma'}.</div>`
   : '<div class="card vazio">Atualize a plataforma do PC (versão 0.8.7 ou mais nova) para ver o gráfico ao vivo do ativo aqui.</div>';
 }
 function confirma(titulo, texto, fn) { $('mT').textContent = titulo; $('mP').textContent = texto; $('modal').classList.add('on'); $('mSim').onclick = () => { $('modal').classList.remove('on'); fn(); }; }
@@ -346,6 +365,8 @@ async function pede(acao, alvo, rot) {
  catch (e) { toast('Não foi possível: ' + e.message); }
 }
 document.addEventListener('click', e => {
+ const cf = e.target.closest('[data-cf]');
+ if (cf) { CONTA_F = cf.dataset.cf; try { localStorage.setItem('qc_conta', CONTA_F); } catch (x) {} FILTRO = null; if (D) desenha(); return; }
  const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa]'); if (!t) return;
  const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
@@ -376,7 +397,7 @@ function grAbre(a) {
  { const x = a.id > 0 && ((D && D.autos) || []).find(y => y.id === a.id); $('grSa').style.display = x && x.trade ? '' : 'none'; }   // 🎯 só no gráfico de uma automação posicionada
  GR.a = a; GR.d = null; GR.ult = null; $('gr').classList.add('on'); $('grTit').firstChild.textContent = a.nome; $('grTit').lastChild.textContent = `${a.estrategia} · ${a.sym} ${a.tf} min`;
  $('grInfo').innerHTML = ''; $('grSt').textContent = '⏳ Pedindo o gráfico ao PC…'; grDesenha();
- try { const c = JSON.parse(localStorage.getItem('qc_graf_' + a.id) || 'null'); if (c) { GR.d = c; grPrepara(); $('grSt').textContent = '⏳ Atualizando… (mostrando o último recebido)'; } } catch (e) {}
+ try { const c = JSON.parse(localStorage.getItem('qc_graf_' + a.id) || 'null'); if (c) { GR.d = grFiltra(c); grPrepara(); $('grSt').textContent = '⏳ Atualizando… (mostrando o último recebido)'; } } catch (e) {}
  grPede(); clearInterval(GR.tm); GR.tm = setInterval(() => { if ($('gr').classList.contains('on')) grPede(); }, 30000);
 }
 $('grVolta').onclick = () => { $('gr').classList.remove('on'); clearInterval(GR.tm); GR.a = null; };
@@ -391,7 +412,7 @@ async function grPede() {
    const r = await rpc('qt_grafico_ler', {p_token: COD, p_alvo: a.id});
    if (r && r.atualizado !== antes) {
     if (r.dados && r.dados.erro) { $('grSt').textContent = '⚠ ' + r.dados.erro; return; }
-    const novo = !GR.d; GR.d = r.dados; try { localStorage.setItem('qc_graf_' + a.id, JSON.stringify(r.dados)); } catch (e) {}
+    const novo = !GR.d; GR.d = grFiltra(r.dados); try { localStorage.setItem('qc_graf_' + a.id, JSON.stringify(r.dados)); } catch (e) {}
     $('grSt').textContent = ''; $('grAt').textContent = 'atualizado ' + new Date(r.atualizado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
     grPrepara(novo); return;
    }
