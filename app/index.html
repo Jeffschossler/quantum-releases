@@ -129,7 +129,7 @@ async function atualiza() {
  try {
   const r = await rpc('qt_ler', {p_token: COD});
   if (!r) { $('semCodigo').style.display = 'block'; $('app').style.display = $('nav').style.display = 'none'; $('st').className = 'off'; $('st').lastChild.textContent = 'código inválido'; return; }
-  D = r.dados || {}; ULT = r; desenha();
+  D = r.dados || {}; ULT = r; desenha(); if (GR.a && GR.d) grAoVivo();
  } catch (e) { $('st').className = 'off'; $('st').lastChild.textContent = 'sem internet'; }
 }
 // FILTRO DE CONTA (pedido do usuário em 17/11/2026: "selecionar entre conta simulação e conta real, para separar as automações e não dar
@@ -428,8 +428,7 @@ function grPrepara(enquadra = true) {
  GR.N = d.c.length;
  const tot = d.ops.reduce((s, o) => s + o.pnl, 0), ab = d.aberta;
  $('grInfo').innerHTML = `<div style="margin-bottom:6px"><b style="color:var(--txt)">${esc(d.ind.nome || 'Sem indicador próprio')}</b> · ${esc(d.dia)}</div>`
-  + (d.abertas || []).map(x => `<div style="margin-bottom:4px">Aberta: <b style="color:var(--txt)">${esc(x.n)}</b> · ${esc(x.pos)} a ${x.e} · <span class="${cls(x.aberto)}">${brl(x.aberto)}</span></div>`).join('')
-  + (ab ? `<div style="margin-bottom:6px">Posição aberta: <b style="color:var(--txt)">${esc(ab.pos)}</b> a ${ab.e} · <span class="${cls(ab.aberto)}">${brl(ab.aberto)}</span></div>` : '')
+  + (grVivas() || (d.abertas || []).concat(ab ? [{...ab, n: ''}] : [])).map(x => `<div style="margin-bottom:4px">Aberta: ${x.n ? `<b style="color:var(--txt)">${esc(x.n)}</b> · ` : ''}${esc(x.pos)} a ${x.e} · <span class="${cls(x.aberto)}">${brl(x.aberto)}</span></div>`).join('')
   + `<div>Operações: <b style="color:var(--txt)">${d.ops.length}</b> · Resultado: <b class="${cls(tot)}">${brl(tot)}</b></div>`
   + (d.geral && !d.ops.length ? '<div class="vazio">Nenhuma operação das automações neste ativo hoje.</div>' : '') + d.ops.slice().reverse().map(o => `<div class="op"><span class="lado ${o.lado}">${o.lado === 'C' ? 'COMPRA' : 'VENDA'}</span><div>${o.n ? `<b style="color:var(--txt)">${esc(o.n)}</b><br>` : ''}${new Date(o.t0).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}→${new Date(o.t).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})} · ${o.e} → ${o.s} · ${esc(o.m)}</div><b class="${cls(o.pnl)}">${brl(o.pnl)}</b></div>`).join('');
  grDesenha();
@@ -447,7 +446,7 @@ function grDesenha() {
  [...(d.ind.linhas || []), ...(d.ind.pontos || [])].forEach(ln => { for (let i = ini; i < Math.min(Math.ceil(fim), ln.v.length); i++) inc(ln.v[i]); });
  // níveis e linhas da posição só entram na escala se estiverem perto: longe, espremiam os candles ("não se ajusta na tela")
  const sp0 = (hi - lo) || 1, a0 = lo - sp0 * .4, b0 = hi + sp0 * .4, perto = v => { if (v != null && v > a0 && v < b0) inc(v); };
- (d.ind.niveis || []).forEach(x => perto(x.v)); d.ops.forEach(o => { if (o.t >= d.c[ini][0]) { perto(o.e); perto(o.s); } }); if (d.aberta) { perto(d.aberta.e); (d.aberta.sl || []).forEach(perto); (d.aberta.tp || []).forEach(perto); }
+ (d.ind.niveis || []).forEach(x => perto(x.v)); d.ops.forEach(o => { if (o.t >= d.c[ini][0]) { perto(o.e); perto(o.s); } }); const VV = grVivas(); if (VV) VV.forEach(x => { perto(x.e); x.legs.forEach(l => { perto(l.sl); perto(l.tp); }); }); else if (d.aberta) { perto(d.aberta.e); (d.aberta.sl || []).forEach(perto); (d.aberta.tp || []).forEach(perto); }
  const pad = (hi - lo) * .06 || 1; hi += pad; lo -= pad;
  if (GR.man) { lo = GR.man.lo; hi = GR.man.hi; }                     // escala de preço mexida com os dedos (⟲ Ajustar volta ao automático)
  GR.geo = {cw, ch, lo, hi};
@@ -457,7 +456,7 @@ function grDesenha() {
  // separador do dia
  if (d.ini > ini && d.ini < fim) { g.strokeStyle = '#334155'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(X(d.ini) - z / 2, 0); g.lineTo(X(d.ini) - z / 2, ch); g.stroke(); g.setLineDash([]); }
  // níveis
- g.font = '10px sans-serif'; (d.ind.niveis || []).forEach(nv => { if (nv.v == null) return; const y = Y(nv.v); g.strokeStyle = nv.cor; g.globalAlpha = .7; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = nv.cor; g.textAlign = 'left'; g.fillText(nv.rot, 4, y - 3); });
+ g.font = '10px sans-serif'; (d.ind.niveis || []).forEach(nv => { if (nv.v == null || (VV && /^[▲▼]/.test(nv.rot || ''))) return; const y = Y(nv.v); g.strokeStyle = nv.cor; g.globalAlpha = .7; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = nv.cor; g.textAlign = 'left'; g.fillText(nv.rot, 4, y - 3); });
  // candles
  const bw = Math.max(1, z * .62), cores = d.ind.cores;
  for (let i = ini; i < Math.min(fim, d.c.length); i++) {
@@ -482,7 +481,20 @@ function grDesenha() {
   const ks = i1; if (feito[ks]) return; feito[ks] = 1; const sv = somaS[ks];
   g.fillStyle = sv >= 0 ? '#4ade80' : '#f87171'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText((sv >= 0 ? '+' : '') + Math.round(sv), x1, y1 + (y1 < 14 ? 14 : -7));
  });
- if (d.aberta) { const ab = d.aberta, lh = (v, cor, rot) => { if (v == null) return; const y = Y(v); g.strokeStyle = cor; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]); g.fillStyle = cor; g.textAlign = 'right'; g.font = 'bold 10px sans-serif'; g.fillText(rot, cw - 4, y - 3); };
+ const ocup = [], lh = (v, cor, rot, cheia) => { if (v == null) return; const y = Y(v); g.strokeStyle = cor; g.setLineDash(cheia ? [] : [6, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke(); g.setLineDash([]);
+  g.font = 'bold 10px sans-serif'; const tw = g.measureText(rot).width + 8; let x = cw - tw - 2, yl = y;
+  for (let k = 0; k < 10; k++) { const o = ocup.find(r => Math.abs(r.y - yl) < 15 && x < r.x + r.w && x + tw > r.x); if (!o) break;   // perto de outra (ex.: stop no 0x0):
+   if (o.x - tw - 3 >= 2) x = o.x - tw - 3; else { x = cw - tw - 2; yl = o.y - 15; } }                                              // ao lado; sem espaço, em cima
+  ocup.push({x, y: yl, w: tw}); g.fillStyle = cor; g.fillRect(x, yl - 15, tw, 14); g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText(rot, x + 4, yl - 5); };
+ if (VV) VV.forEach(x => {
+  const dir = x.lado === 'C' ? 1 : -1, fmt = v => v >= 1000 ? Math.round(v).toLocaleString('pt-BR') : (+v).toFixed(2), pts = v => { const n = +((v - x.e) * dir).toFixed(2); return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('pt-BR'); };
+  const val = (v, q) => `${pts(v)} pts · ${q.toLocaleString('pt-BR')}` + (x.pv ? ` · ${brl((v - x.e) * dir * q * x.pv)}` : '');
+  const L = {sl: [], tp: []}; x.legs.forEach(l => ['sl', 'tp'].forEach(k => { const v = l[k]; if (!v) return; const y = L[k].find(z => Math.abs(z.v - v) < 1e-9); y ? y.q += +l.q || 0 : L[k].push({v, q: +l.q || 0}); }));
+  L.tp.sort((a, b) => (a.v - b.v) * dir); const nm = VV.length > 1 || GR.a.id < 0 ? x.n + ': ' : '';
+  lh(x.e, dir > 0 ? '#15803d' : '#b91c1c', `${nm}${dir > 0 ? 'C' : 'V'} ${x.q.toLocaleString('pt-BR')} @ ${fmt(x.e)} · ${brl(x.aberto)}`, true);
+  L.sl.forEach(z => lh(z.v, '#dc2626', `STOP ${fmt(z.v)} · ${val(z.v, z.q)}`));
+  L.tp.forEach((z, i) => lh(z.v, '#16a34a', `${i < L.tp.length - 1 ? 'PARCIAL' : 'ALVO'} ${fmt(z.v)} · ${val(z.v, z.q)}`)); });
+ else if (d.aberta) { const ab = d.aberta;
   lh(ab.e, '#e2e8f0', (ab.lado === 'C' ? 'COMPRADO ' : 'VENDIDO ') + ab.e); (ab.sl || []).forEach(v => lh(v, '#ef4444', 'STOP ' + v)); (ab.tp || []).forEach(v => lh(v, '#22c55e', 'ALVO ' + v)); }
  g.restore();
  // escalas
@@ -492,6 +504,25 @@ function grDesenha() {
  g.fillStyle = '#94a3b8'; g.font = '10px sans-serif'; g.textAlign = 'center'; const passo = Math.max(1, Math.ceil(70 / z));
  for (let i = ini; i < Math.min(fim, d.c.length); i += passo) g.fillText(new Date(d.c[i][0]).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), Math.min(cw - 16, Math.max(16, X(i))), ch + 12);
 }
+// AO VIVO (pedido do usuário em 23/11/2026: "no app não dá pra ver em tempo real? apenas a imagem meio congelada"): com o gráfico
+// aberto, o resumo vem a cada 2 s (o PC também manda a cada 2 s enquanto o celular pede o gráfico) e traz o último preço de cada ativo
+// (D.px) e a operação aberta de cada automação (stop, alvos, resultado): o último candle anda, um candle novo começa na hora dele e as
+// linhas da posição mostram pontos e R$, como na operação manual. A cada 30 s o PC manda o gráfico inteiro de novo (indicador etc.).
+function grVivas() {                                                // posições abertas ao vivo deste gráfico (ou null sem o resumo)
+ if (!GR.a || !D || !D.autos) return null;
+ return D.autos.filter(a => a.trade && (GR.a.id > 0 ? a.id === GR.a.id : a.sym === GR.a.sym && contaOk(a.conta)))
+  .map(a => { const t = a.trade, q = t.legs.reduce((s, l) => s + (+l.q || 0), 0);
+   return {n: a.nome, lado: t.buy ? 'C' : 'V', e: t.e, q: +q.toFixed(4), aberto: a.aberto, pos: a.pos, pv: t.pv, legs: t.legs}; });
+}
+function grAoVivo() {
+ const d = GR.d, x = D && D.px && D.px[GR.a.sym]; if (!d || !d.c.length) return;
+ if (x && x[2]) { const [b, , tms] = x, tf = (+GR.a.tf || 5) * 60000, c = d.c, u = c[c.length - 1];
+  if (tms >= u[0] + tf) { const fimAntes = GR.fim >= c.length - .5; c.push([Math.floor(tms / tf) * tf, b, b, b, b]); if (fimAntes) GR.fim += 1; GR.N = c.length; }
+  else if (tms >= u[0]) { u[2] = Math.max(u[2], b); u[3] = Math.min(u[3], b); u[4] = b; }
+  $('grAt').textContent = '● ao vivo ' + new Date(tms).toLocaleTimeString('pt-BR'); }
+ grPrepara(false);
+}
+setInterval(() => { if (GR.a && $('gr').classList.contains('on') && !document.hidden && !grAoVivo.ocup) { grAoVivo.ocup = 1; atualiza().finally(() => grAoVivo.ocup = 0); } }, 2000);
 function grEnquadra() { const d = GR.d; GR.man = null; if (!d) return; GR.n = Math.max(25, Math.min(d.c.length - d.ini + 4, 120)); GR.fim = d.c.length + 2; }
 // Gestos como no gráfico do PC (pedido do usuário em 9/11/2026: "quero poder mexer igual ao gráfico no PC: zoom, pra cima, pra baixo,
 // pra trás, pra frente"): 1 dedo arrasta para os lados e para cima/baixo; pinça na horizontal = zoom do tempo, na vertical = zoom do
