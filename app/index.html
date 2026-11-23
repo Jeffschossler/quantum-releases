@@ -88,8 +88,8 @@ body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}  
    <div class="card"><div class="lbl">Resultado do dia · automações</div><div class="big" id="hDia">–</div>
     <div class="grid"><div><span class="lbl">Aberto</span><b id="hAberto">–</b></div><div><span class="lbl">Operações</span><b id="hOps">–</b></div><div><span class="lbl">Acerto</span><b id="hAcerto">–</b></div></div><div id="hAbertas"></div></div>
    <div class="card" id="cAtivo" style="display:none"><div class="lbl">Por ativo (hoje)</div><div id="hAtivo"></div></div>
-   <div class="card"><div class="lbl">Curva do dia</div><canvas id="curva"></canvas></div>
    <div class="card"><div class="lbl">Por automação (hoje)</div><canvas id="barras"></canvas></div>
+   <div class="card"><div class="lbl">Curva do dia</div><canvas id="curva"></canvas></div>
    <div class="card" id="cPer"><div class="lbl">Resultado por período · automações</div>
     <div class="chips" id="pChips"><b data-per="semana">Semana</b><b data-per="mes">Mês</b><b data-per="30">30 dias</b><b data-per="90">90 dias</b><b data-per="desde">Desde <span id="pDesde">…</span></b><input type="date" id="pDeIn" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"></div>
     <div class="big" id="pTot">–</div><div class="sub" id="pDe" style="font-size:12.5px;color:var(--sub)"></div>
