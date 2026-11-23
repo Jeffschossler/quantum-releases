@@ -71,6 +71,7 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 .sa-b{display:flex;gap:8px;margin-top:8px}.sa-b button{padding:10px;font-size:14px}.sa-env{background:#1d4ed8;color:#fff}.sa-0x0{background:#0c2a43;color:#bae6fd;border:1px solid #1e3a5f}
 body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}   /* com o painel aberto o aviso fica em cima (embaixo cobria o Enviar) */
 .b-sa{background:none;border:0;color:var(--amar);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
+#hAbertas .hab{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px}#hAbertas .hab span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)}#hAbertas .hab .lado{font-size:11px;padding:1px 6px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -85,7 +86,7 @@ body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}  
   <div class="chips conta-f" id="contaF"><b data-cf="">Todas</b><b data-cf="sim">🧪 Simulação</b><b data-cf="mt5" id="cfMt5">💰 Conta real</b></div>
   <section class="sec on" id="s-hoje">
    <div class="card"><div class="lbl">Resultado do dia · automações</div><div class="big" id="hDia">–</div>
-    <div class="grid"><div><span class="lbl">Aberto</span><b id="hAberto">–</b></div><div><span class="lbl">Operações</span><b id="hOps">–</b></div><div><span class="lbl">Acerto</span><b id="hAcerto">–</b></div></div></div>
+    <div class="grid"><div><span class="lbl">Aberto</span><b id="hAberto">–</b></div><div><span class="lbl">Operações</span><b id="hOps">–</b></div><div><span class="lbl">Acerto</span><b id="hAcerto">–</b></div></div><div id="hAbertas"></div></div>
    <div class="card" id="cAtivo" style="display:none"><div class="lbl">Por ativo (hoje)</div><div id="hAtivo"></div></div>
    <div class="card"><div class="lbl">Curva do dia</div><canvas id="curva"></canvas></div>
    <div class="card"><div class="lbl">Por automação (hoje)</div><canvas id="barras"></canvas></div>
@@ -155,6 +156,9 @@ function desenha() {
  const dia = autos.reduce((s, a) => s + (a.dia || 0), 0), aberto = autos.reduce((s, a) => s + (a.aberto || 0), 0), ganhos = ops.filter(o => o.pnl > 0).length;
  $('hDia').textContent = brl(dia); $('hDia').className = 'big ' + cls(dia);
  $('hAberto').textContent = brl(aberto); $('hAberto').className = cls(aberto);
+ // posições abertas uma a uma (23/11/2026: uma vendida e outra comprada no mesmo preço somavam R$ 0,00 e parecia "sem operação aberta")
+ const abertas = autos.filter(a => a.pos && a.pos !== 'Zerado');
+ $('hAbertas').innerHTML = abertas.length ? `<div class="lbl" style="margin-top:10px">${abertas.length} posição(ões) aberta(s)</div>` + abertas.map(a => `<div class="hab"><span>${esc(a.nome)}</span><span class="lado ${/^V/.test(a.pos) ? 'V' : 'C'}">${esc(a.pos)}</span><b class="${cls(a.aberto)}">${brl(a.aberto)}</b></div>`).join('') : '';
  $('hOps').textContent = ops.length; $('hAcerto').textContent = ops.length ? Math.round(ganhos / ops.length * 100) + '%' : '–';
  const c = D.conta, m = D.manual || {};
  $('cConta').innerHTML = `<div class="lbl">Conta e operações manuais</div>` + (c ? `<div style="margin-top:6px">MT5 ${esc(c.login)}${c.demo ? ' (demo)' : ''} · Saldo <b>${esc(c.moeda)} ${Number(c.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b> · Patrimônio <b>${Number(c.patrimonio).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b></div>` : '<div class="sub" style="margin-top:6px;color:var(--sub)">MT5 desconectado</div>')
