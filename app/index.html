@@ -69,7 +69,22 @@ nav b{flex:1;text-align:center;padding:9px 0 8px;font-size:12px;color:var(--sub)
 .sa-r{display:grid;grid-template-columns:48px 1fr 48px;gap:8px}.sa-r button{padding:10px 0;font-size:20px;background:#1e293b;color:var(--txt);border:1px solid #334155}
 .sa-r input{min-width:0;width:100%;text-align:center;font:inherit;font-size:18px;font-weight:700;background:#0b1220;color:var(--txt);border:1px solid #334155;border-radius:10px;padding:8px}
 .sa-b{display:flex;gap:8px;margin-top:8px}.sa-b button{padding:10px;font-size:14px}.sa-env{background:#1d4ed8;color:#fff}.sa-0x0{background:#0c2a43;color:#bae6fd;border:1px solid #1e3a5f}
-body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}   /* com o painel aberto o aviso fica em cima (embaixo cobria o Enviar) */
+#cfg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:9}#cfg.on{display:flex}
+#cfg>div{background:var(--card);border-top:1px solid var(--borda);border-radius:18px 18px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;display:flex;flex-direction:column}
+#cfgCab{padding:14px 16px 6px}#cfgCab h3{margin:0;font-size:17px}#cfgCab .sub{color:var(--sub);font-size:12.5px}
+#cfgCorpo{overflow:auto;padding:0 16px 10px;flex:1}
+#cfgRod{display:flex;gap:10px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--borda)}#cfgRod button{flex:1;padding:12px;font-size:15px}
+.cf-sec{border:1px solid var(--borda);border-radius:12px;padding:10px 12px;margin:10px 0;background:#0d1526}.cf-sec h4{margin:0 0 8px;font-size:12px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em}
+.cf-l{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13.5px;border-bottom:1px solid #16223a}.cf-l:last-child{border:0}.cf-l span{color:var(--sub)}.cf-l b{text-align:right}
+.cf-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cf-f label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+.cf-f input,.cf-f select{width:100%;box-sizing:border-box;font:inherit;font-size:15px;background:#0b1220;color:var(--txt);border:1px solid #334155;border-radius:9px;padding:9px 10px}
+.cf-f input[type=checkbox]{width:auto;padding:0;margin:0 6px 0 0;vertical-align:middle}
+.cf-f input.mudou,.cf-f select.mudou{border-color:#f59e0b;background:#1f1708}
+.cf-fx{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}.cf-fx>label{font-size:12px;color:var(--sub);display:flex;gap:5px;align-items:center;padding-bottom:10px}
+.cf-mini{font-size:12px;color:var(--sub);margin-top:6px}
+.b-cfg{background:none;border:0;color:#cbd5e1;font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
+.cf-salvar{background:#1d4ed8;color:#fff}.cf-salvar:disabled{opacity:.45}.cf-cancel{background:#1e293b;color:var(--txt);border:1px solid #334155}
+body:has(#sa.on) #toast,body:has(#cfg.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}   /* com o painel aberto o aviso fica em cima (embaixo cobria o Enviar) */
 .b-sa{background:none;border:0;color:var(--amar);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}#grSt{font-size:12px;color:var(--amar);padding:4px 14px}.b-graf{background:none;border:0;color:var(--azul);font-weight:600;padding:8px 0 0;font-size:13px;flex:none}
 #hAbertas .hab{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px}#hAbertas .hab span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)}#hAbertas .hab .lado{font-size:11px;padding:1px 6px;border-radius:6px}
 </style>
@@ -107,6 +122,7 @@ body:has(#sa.on) #toast{bottom:auto;top:calc(64px + env(safe-area-inset-top))}  
 <div id="gr"><header><button id="grVolta" aria-label="Voltar">‹</button><div id="grTit"><b></b><span></span></div><span id="grAt" style="margin-left:auto;font-size:12px;color:var(--sub)"></span></header>
  <div id="grSt"></div><div id="grArea"><canvas id="grCv"></canvas><div id="grBts"><button id="grAj" title="Ajustar o gráfico na tela">⟲ Ajustar</button><button id="grFim" title="Ir para o candle atual">≫</button><button id="grPain" title="Mostrar/esconder as operações">▾</button><button id="grSa" title="Mexer no stop e no alvo da operação aberta" style="display:none">🎯 Stop e alvo</button></div></div><div id="grInfo"></div></div>
 <div id="sa"><div id="saCorpo"></div></div>
+<div id="cfg"><div><div id="cfgCab"></div><div id="cfgCorpo"></div><div id="cfgRod"><button class="cf-cancel" id="cfgCancela">Cancelar</button><button class="cf-salvar" id="cfgSalva" disabled>Salvar</button></div></div></div>
 <div id="modal"><div><h3 id="mT"></h3><p id="mP"></p><div class="bts"><button class="b-pausa" id="mNao">Cancelar</button><button class="b-enc" id="mSim">Confirmar</button></div></div></div>
 <div id="toast"></div>
 <script>
@@ -181,7 +197,7 @@ function desenha() {
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
-   <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-graf" data-g="${a.id}">📈 Gráfico</button>${a.trade ? `<button class="b-sa" data-sa="${a.id}">🎯 Stop e alvo</button>` : ''}<button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
+   <div style="grid-column:1/3;display:flex;gap:16px;flex-wrap:wrap"><button class="b-cfg" data-cfg="${a.id}" title="Ver e ajustar a configuração">⚙ Configuração</button><button class="b-graf" data-g="${a.id}">📈 Gráfico</button>${a.trade ? `<button class="b-sa" data-sa="${a.id}">🎯 Stop e alvo</button>` : ''}<button class="b-ops" data-o="${a.id}">📋 Operações de hoje (${(D.hoje || []).filter(o => o.id === a.id).length}) ›</button></div></div>`;
  }).join('') + (!autos.length ? `<div class="card vazio">Nenhuma automação ${CONTA_F ? 'na ' + contaNome() : 'configurada na plataforma'}.</div>` : !ord.length ? '<div class="card vazio">Nenhuma automação rodando agora. Toque em "Mostrar todas" para ligar uma.</div>' : '');
  $('bTodas').disabled = !(D.autos || []).some(a => a.on);
  $('bTodas').textContent = CONTA_F ? '⏸ Pausar todas as automações (Simulação e MT5)' : '⏸ Pausar todas as automações';
@@ -372,7 +388,7 @@ async function pede(acao, alvo, rot) {
 document.addEventListener('click', e => {
  const cf = e.target.closest('[data-cf]');
  if (cf) { CONTA_F = cf.dataset.cf; try { localStorage.setItem('qc_conta', CONTA_F); } catch (x) {} FILTRO = null; if (D) desenha(); return; }
- const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa]'); if (!t) return;
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa],[data-cfg]'); if (!t) return;
  const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
@@ -383,6 +399,7 @@ document.addEventListener('click', e => {
  else if (t.dataset.ga) { const x = (D.ativos || [])[+t.dataset.ga - 1]; if (!x) return; GTF = +t.dataset.tf; try { localStorage.setItem('qc_gtf', GTF); } catch (y) {} grafAtivos();
   grAbre({id: -(+t.dataset.ga * 100 + GTF), nome: x.sym + ' · ' + GTF + ' min', estrategia: 'Todas as automações', sym: x.sym, tf: GTF}); }
  else if (t.dataset.sa) saAbre(+t.dataset.sa);
+ else if (t.dataset.cfg) cfgAbre(+t.dataset.cfg);
  else if (t.dataset.g && a) grAbre(a);
  else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
  else if (t.dataset.f) { FILTRO = null; desenha(); }
@@ -584,6 +601,102 @@ function grEnquadra() { const d = GR.d; GR.man = null; if (!d) return; GR.n = Ma
 })();
 atualiza(); setInterval(atualiza, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) atualiza(); });
+// ---------- ⚙ configuração da automação (pedido do usuário em 24/11/2026) ----------
+// "uma engrenagem em cada automação, pra eu entrar e ver as configurações, ver se elas têm meta…; um botão de cancelar quando estiver nessa
+// aba para não precisar salvar nada antes de sair caso eu mude alguma coisa sem querer". A tela é montada UMA vez ao abrir (as atualizações
+// a cada poucos segundos não mexem no que está sendo digitado). Salvar manda o pedido "config" só com o que mudou (SQL
+// docs/supabase_celular_config.sql); o PC confere e aplica. Cancelar (ou o voltar do celular) sai sem salvar nada.
+const CF = {id: null, a: null, c: null};
+const cfBr = v => v == null ? '' : String(+(+v).toFixed(4)).replace('.', ',');
+const cfLe = s => { s = String(s == null ? '' : s).trim().replace(/\s/g, ''); if (s === '') return 0; if (/,/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); const v = parseFloat(s); return isFinite(v) ? v : NaN; };
+const cfRS = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'sem';   // valor da configuração: sem sinal
+function cfgAbre(id) {
+ const a = ((D && D.autos) || []).find(x => x.id === id); if (!a) return;
+ if (!a.cfg) return toast('Atualize a plataforma do PC (versão 0.13.8 ou mais nova) para ver a configuração aqui.');
+ CF.id = id; CF.a = a; CF.c = JSON.parse(JSON.stringify(a.cfg)); const c = CF.c, r = c.risco || {};
+ const ent = {ambas: 'Compra e venda', compra: 'Só compra', venda: 'Só venda'};
+ const sai = c.saida ? c.saida.map((l, k) => `Saída ${k + 1}: ${cfBr(l[0])}% · alvo ${l[1] ? cfBr(l[1]) + ' pts' : 'sem'} · stop ${l[2] ? cfBr(l[2]) + ' pts' : 'do código'}${l[3] ? ' · breakeven ' + cfBr(l[3]) : ''}${l[4] ? ' · móvel ' + cfBr(l[4]) : ''}`).join('<br>')
+  : c.codigo_saida ? 'Gerenciamento do código (o stop e o alvo da estratégia)' : '<span style="color:#fcd34d">⚠ Sem stop nem alvo</span>';
+ const lin = (t, v) => `<div class="cf-l"><span>${t}</span><b>${v}</b></div>`;
+ const fld = (k, t, v, un) => `<div class="cf-f"><label>${t}${un ? ' (' + un + ')' : ''}</label><input data-cfk="${k}" inputmode="decimal" value="${esc(cfBr(v))}" placeholder="0 = sem"></div>`;
+ $('cfgCab').innerHTML = `<h3>⚙ ${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)} min · ${a.conta === 'MT5' ? '<b style="color:#fca5a5">conta MT5</b>' : 'Simulação'}${a.gerente ? ' · 🛡 no gerente de risco' : ''}</div>`;
+ $('cfgCorpo').innerHTML = `
+  <div class="cf-sec"><h4>Limites do dia</h4>${lin('Meta do dia', cfRS(r.meta))}${lin('Limite de perda do dia', cfRS(r.perda))}${lin('Nº de operações', r.max_trades ? r.max_trades + ' por dia' : 'sem limite')}${lin('Perdas seguidas', r.perdas_seguidas ? 'para depois de ' + r.perdas_seguidas : 'sem limite')}${lin('Trava de ganho', r.trava_ativa ? 'a partir de ' + cfRS(r.trava_ativa) + ', devolvendo ' + cfBr(r.trava_dev) + '%' : 'sem')}</div>
+  <div class="cf-sec"><h4>Quantidade e entrada</h4><div class="cf-g">${fld('lot', 'Quantidade por ordem', c.lot)}${fld('max_pos', 'Quantidade máxima', c.max_pos)}
+   <div class="cf-f" style="grid-column:1/3"><label>Tipo de abertura</label><select data-cfk="entrada">${Object.entries(ent).map(([v, t]) => `<option value="${v}"${(c.entrada || 'ambas') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div>
+   ${c.lot_base && Math.abs(c.lot_base - c.lot) > 1e-9 ? `<div class="cf-mini">🛡 O gerente de risco mudou a quantidade (original ${cfBr(c.lot_base)}).</div>` : ''}<div class="cf-mini">Execução: ${c.modo === 'condicao' ? 'assim que a condição for satisfeita' : 'no fechamento do candle'}.</div></div>
+  <div class="cf-sec"><h4>Horário ${c.htipo === 'suspensao' ? '(intervalos de suspensão)' : '(intervalos de execução)'}</h4>
+   ${(c.faixas || []).map((f, k) => `<div class="cf-fx"><div class="cf-f"><label>Início</label><input type="time" data-fxi="${k}" value="${esc(f[0])}"></div><div class="cf-f"><label>Fim</label><input type="time" data-fxf="${k}" value="${esc(f[1])}"></div><label><input type="checkbox" data-fxz="${k}"${f[2] ? ' checked' : ''}>zerar</label></div>`).join('') || '<div class="cf-mini">Sem intervalos: opera o dia todo.</div>'}
+   <div class="cf-g"><div class="cf-f"><label><input type="checkbox" data-cfk="zon"${c.zerar_as ? ' checked' : ''}>Zerar a posição às</label><input type="time" data-cfk="zerar_as" value="${esc(c.zerar_as || '17:40')}"></div></div></div>
+  <div class="cf-sec"><h4>Risco (0 = sem)</h4><div class="cf-g">${fld('meta', 'Meta do dia', r.meta, 'R$')}${fld('perda', 'Limite de perda do dia', r.perda, 'R$')}${fld('max_trades', 'Nº de operações do dia', r.max_trades)}${fld('perdas_seguidas', 'Parar após N perdas seguidas', r.perdas_seguidas)}${fld('stop_max', 'Perda máxima por operação', r.stop_max, 'pts')}${fld('trava_ativa', 'Trava de ganho a partir de', r.trava_ativa, 'R$')}${fld('trava_dev', 'Trava: parar se devolver', r.trava_dev, '%')}</div></div>
+  <div class="cf-sec"><h4>Saída (só para ver)</h4><div style="font-size:13.5px;line-height:1.5">${sai}</div></div>
+  ${(c.params || []).length ? `<div class="cf-sec"><h4>Parâmetros da estratégia (só para ver)</h4>${c.params.map(p => lin(esc(p[0]), esc(typeof p[1] === 'number' ? cfBr(p[1]) : p[1]))).join('')}</div>` : ''}
+  ${(c.filtros || []).length ? `<div class="cf-sec"><h4>Filtros de mercado (só para ver)</h4><div style="font-size:13.5px">${c.filtros.map(esc).join(' · ')}</div></div>` : ''}
+  <div class="cf-mini">A saída, os parâmetros e os filtros se mudam na plataforma do PC.${a.conta === 'MT5' ? ' Conta MT5: as mudanças valem para as próximas ordens de verdade.' : ''}</div>`;
+ $('cfgCorpo').scrollTop = 0; $('cfg').classList.add('on'); cfgMarca();
+}
+function cfgLeTudo() {
+ const el = $('cfgCorpo'), q = s => el.querySelector(s), x = {}, c = CF.c, r = c.risco || {};
+ const n = k => cfLe(q(`[data-cfk="${k}"]`).value);
+ x.lot = n('lot'); x.max_pos = n('max_pos'); x.entrada = q('[data-cfk="entrada"]').value;
+ x.faixas = (c.faixas || []).map((f, k) => [q(`[data-fxi="${k}"]`).value, q(`[data-fxf="${k}"]`).value, q(`[data-fxz="${k}"]`).checked]);
+ x.zerar_as = q('[data-cfk="zon"]').checked ? q('[data-cfk="zerar_as"]').value : '';
+ ['meta', 'perda', 'max_trades', 'perdas_seguidas', 'stop_max', 'trava_ativa', 'trava_dev'].forEach(k => x[k] = n(k));
+ const muda = {}, ig = (a, b) => Math.abs((+a || 0) - (+b || 0)) < 1e-9;
+ if (!ig(x.lot, c.lot)) muda.lot = x.lot;
+ if (!ig(x.max_pos, c.max_pos)) muda.max_pos = x.max_pos;
+ if (x.entrada !== (c.entrada || 'ambas')) muda.entrada = x.entrada;
+ if (JSON.stringify(x.faixas) !== JSON.stringify(c.faixas || [])) muda.faixas = x.faixas;
+ if (x.zerar_as !== (c.zerar_as || '')) muda.zerar_as = x.zerar_as;
+ ['meta', 'perda', 'max_trades', 'perdas_seguidas', 'stop_max', 'trava_ativa', 'trava_dev'].forEach(k => { if (!ig(x[k], r[k])) muda[k] = x[k]; });
+ return muda;
+}
+function cfgMarca() {                                               // campos mudados em amarelo; Salvar só com algo mudado
+ if (!CF.c) return; let m = {}; try { m = cfgLeTudo(); } catch (e) {}
+ const el = $('cfgCorpo');
+ el.querySelectorAll('[data-cfk]').forEach(i => { const k = i.dataset.cfk === 'zon' ? 'zerar_as' : i.dataset.cfk; i.classList.toggle('mudou', k in m); });
+ el.querySelectorAll('[data-fxi],[data-fxf]').forEach(i => i.classList.toggle('mudou', 'faixas' in m));
+ const n = Object.keys(m).length; $('cfgSalva').disabled = !n; $('cfgSalva').textContent = n ? `Salvar (${n})` : 'Salvar';
+}
+function cfgFecha() { $('cfg').classList.remove('on'); CF.id = null; CF.a = null; CF.c = null; }
+$('cfg').addEventListener('input', cfgMarca); $('cfg').addEventListener('change', cfgMarca);
+$('cfgCancela').onclick = () => { const m = CF.c ? cfgLeTudo() : {}; cfgFecha(); if (Object.keys(m).length) toast('Cancelado: nada foi salvo'); };
+$('cfg').addEventListener('click', e => { if (e.target.id === 'cfg') $('cfgCancela').click(); });
+$('cfgSalva').onclick = () => {
+ const a = CF.a; if (!a) return; const m = cfgLeTudo(); if (!Object.keys(m).length) return;
+ const nomes = {lot: 'Quantidade', max_pos: 'Qtd máxima', entrada: 'Tipo de abertura', faixas: 'Horário', zerar_as: 'Zerar às', meta: 'Meta do dia', perda: 'Limite de perda', max_trades: 'Nº de operações', perdas_seguidas: 'Perdas seguidas', stop_max: 'Perda máx. por operação', trava_ativa: 'Trava de ganho', trava_dev: 'Devolução da trava'};
+ const ruim = Object.entries(m).find(([k, v]) => typeof v === 'number' && !(v >= 0));
+ if (ruim) return toast('Valor inválido em ' + nomes[ruim[0]]);
+ if ('lot' in m && !(m.lot > 0)) return toast('A quantidade por ordem tem que ser maior que zero');
+ const txt = Object.keys(m).map(k => nomes[k]).join(', ') + (a.conta === 'MT5' ? '. Conta MT5: vale para as próximas ordens de verdade.' : '.');
+ confirma(`Salvar a configuração de "${a.nome}"?`, 'Muda: ' + txt, async () => {
+  try {
+   const n = await rpc('qt_comandar2', {p_token: COD, p_acao: 'config', p_alvo: a.id, p_dados: m});
+   ESPERA[a.id] = 'salvando a configuração…'; ESPERA['n' + a.id] = n; cfgFecha(); toast('Pedido enviado ao PC…'); desenha(); setTimeout(atualiza, 2500);
+  } catch (e) {
+   toast(/acao invalida|qt_comandar2|could not find|function/i.test(e.message || '') ? 'O servidor ainda não aceita este pedido: rode o docs/supabase_celular_config.sql no Supabase (uma vez).' : 'Não foi possível: ' + e.message);
+  }
+ });
+};
+// ---------- botão VOLTAR do celular (pedido do usuário em 24/11/2026: "não quero que o botão de voltar do celular feche o app, ele deve
+// apenas voltar para a aba início") ----------
+// Duas entradas no histórico do navegador; cada "voltar" fecha a tela de cima (aviso, ⚙, stop e alvo, foto, chat, gráfico) ou volta para a
+// aba Hoje, e a entrada é reposta. Na aba Hoje sem nada aberto, não faz nada (o app não fecha).
+function voltarApp() {
+ if ($('modal').classList.contains('on')) { $('modal').classList.remove('on'); return; }
+ if ($('cfg').classList.contains('on')) { $('cfgCancela').click(); return; }
+ if ($('sa').classList.contains('on')) { $('sa').classList.remove('on'); SA.id = null; return; }
+ const ver = $('chVer'); if (ver && ver.classList.contains('on')) { ver.classList.remove('on'); return; }
+ const ch = $('chat'); if (ch && ch.classList.contains('on')) { $('chVolta').click(); return; }
+ if ($('gr').classList.contains('on')) { $('grVolta').click(); return; }
+ if (ABA !== 'hoje') { const b = document.querySelector('nav b[data-s="hoje"]'); if (b) b.click(); }
+}
+if (!/[?&]pc=1/.test(location.search)) {
+ const arma = () => { try { history.pushState({qc: 1}, ''); } catch (e) {} };
+ try { if (!history.state || !history.state.qc) { arma(); arma(); } } catch (e) {}
+ addEventListener('popstate', () => { try { voltarApp(); } catch (e) {} arma(); });
+}
+
 </script>
 <script src="chat.js"></script>
 </body>
