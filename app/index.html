@@ -32,7 +32,7 @@ canvas{width:100%;height:190px;display:block}
 .card.auto.fim-vermelho{border-color:rgba(239,68,68,.55);background:linear-gradient(90deg,rgba(239,68,68,.16),rgba(239,68,68,.05));box-shadow:inset 4px 0 #ef4444}
 .card.auto.fim-verde{border-color:rgba(34,197,94,.55);background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(34,197,94,.04));box-shadow:inset 4px 0 #22c55e}
 .fimtxt{font-size:12px;margin-top:5px}.fim-vermelho .fimtxt{color:#fca5a5}.fim-verde .fimtxt{color:#86efac}
-.t-run{background:#052e1a;color:#4ade80}.t-off{background:#1f2937;color:#9ca3af}.t-wait{background:#3a2e05;color:#fde047}.t-sim{background:#0c2a43;color:#7dd3fc}.t-mt5{background:#3b0d0d;color:#fca5a5}
+.t-ger{border:1px solid #334155;background:#111827;color:#94a3b8;font:inherit;font-size:inherit;cursor:pointer}.t-ger.on{background:#0f3a2a;border-color:#16a34a;color:#86efac}.t-run{background:#052e1a;color:#4ade80}.t-off{background:#1f2937;color:#9ca3af}.t-wait{background:#3a2e05;color:#fde047}.t-sim{background:#0c2a43;color:#7dd3fc}.t-mt5{background:#3b0d0d;color:#fca5a5}
 .vals{text-align:right;font-size:13px;color:var(--sub)}.vals b{font-size:17px;display:block}
 .bts{grid-column:1/3;display:flex;gap:8px;margin-top:8px}
 button{font:inherit;border:0;border-radius:10px;padding:11px 12px;font-weight:700;cursor:pointer;flex:1}
@@ -165,7 +165,7 @@ function desenha() {
  $('st').className = on ? 'on' : 'off'; $('st').lastChild.textContent = on ? 'PC ao vivo' : 'PC offline · ' + new Date(ULT.atualizado).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
  $('avisoPc').innerHTML = on ? '' : `<div class="aviso">⚠ A plataforma do PC não manda dados há ${atraso > 3600 ? Math.round(atraso / 3600) + ' h' : Math.round(atraso / 60) + ' min'}. Os valores abaixo são do último envio. Pedidos só são feitos com o PC ligado e a plataforma aberta.</div>`;
  // pedidos já feitos pelo PC: tira o "⏳" ANTES de desenhar os cartões
- (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast((/^erro/.test(c.resultado || '') ? '⚠ ' : '✔ ') + (c.resultado || 'feito').replace(/^(ok|erro): /, '')); } });
+ (ULT.cmds || []).forEach(c => { if (ESPERA[c.alvo] && c.feito && ESPERA['n' + c.alvo] === c.n) { delete ESPERA[c.alvo]; delete ESPERA['n' + c.alvo]; toast((/^erro/.test(c.resultado || '') ? '⚠ ' : '✔ ') + (c.resultado || 'feito').replace(/^(ok|erro): /, '')); } }); (ULT.cmds || []).forEach(c => { if (ESPERA['g' + c.alvo] && c.feito && ESPERA['gn' + c.alvo] === c.n) { delete ESPERA['g' + c.alvo]; delete ESPERA['gn' + c.alvo]; toast((/^erro/.test(c.resultado || '') ? '⚠ ' : '✔ ') + (c.resultado || 'feito').replace(/^(ok|erro): /, '')); } });
  document.querySelectorAll('#contaF b').forEach(b => b.classList.toggle('on', b.dataset.cf === CONTA_F));
  $('cfMt5').textContent = D.conta && D.conta.demo ? "💰 MT5 demo" : "💰 Conta real";
  const autos = (D.autos || []).filter(a => contaOk(a.conta)), ops = (D.hoje || []).filter(o => contaOk(o.conta)).slice().sort((a, b) => a.t - b.t);
@@ -193,7 +193,7 @@ function desenha() {
   const fim = !a.on && a.fim ? a.fim : null;
   const est = fim ? (fim.cor === 'verde' ? '<span class="tag t-meta">✓ Meta do dia</span>' : fim.cor === 'cinza' ? '<span class="tag t-fimh">■ Encerrada no dia</span>' : '<span class="tag t-stop">⛔ Stop do dia</span>') : !a.on ? '<span class="tag t-off">■ Parada</span>' : /^rodando/i.test(a.estado) ? '<span class="tag t-run">● Rodando</span>' : `<span class="tag t-wait">${esc((a.estado || 'ligada').split('(')[0].slice(0, 40))}</span>`;
   const pend = ESPERA[a.id];
-  return `<div class="card auto${fim ? ' fim-' + fim.cor : ''}"><div><h3>${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)}m</div><div style="margin-top:6px">${est}<span class="tag ${a.conta === 'MT5' ? 't-mt5' : 't-sim'}">${a.conta === 'MT5' ? 'MT5' : 'Simulação'}</span></div>${fim ? `<div class="fimtxt">Desligada: ${esc(fim.txt)}</div>` : ''}</div>
+  return `<div class="card auto${fim ? ' fim-' + fim.cor : ''}"><div><h3>${esc(a.nome)}</h3><div class="sub">${esc(a.estrategia)} · ${esc(a.sym)} ${esc(a.tf)}m</div><div style="margin-top:6px">${est}<span class="tag ${a.conta === 'MT5' ? 't-mt5' : 't-sim'}">${a.conta === 'MT5' ? 'MT5' : 'Simulação'}</span><button class="tag t-ger${a.gerente ? ' on' : ''}" data-ger="${a.id}">${ESPERA['g' + a.id] ? '⏳ ' + esc(ESPERA['g' + a.id]) : a.gerente ? '🛡 no gerente' : '🛡 fora do gerente'}</button></div>${fim ? `<div class="fimtxt">Desligada: ${esc(fim.txt)}</div>` : ''}</div>
    <div class="vals">Dia<b class="${cls(a.dia)}">${brl(a.dia)}</b>${a.pos && a.pos !== 'Zerado' ? `${esc(a.pos)} · <span class="${cls(a.aberto)}">${brl(a.aberto)}</span>` : 'Zerada'}<br>${a.ops} op.</div>
    <div class="bts">${pend ? `<button disabled>⏳ ${esc(pend)}</button>` : (a.on ? `<button class="b-pausa" data-p="${a.id}">⏸ Pausar</button>` : `<button class="b-liga" data-l="${a.id}">▶ Ligar</button>`)
     + (pend ? '' : `<button class="b-enc" data-e="${a.id}" ${a.on || (a.pos && a.pos !== 'Zerado') ? '' : 'disabled'}>⛔ Encerrar</button>`)}</div>
@@ -388,7 +388,7 @@ async function pede(acao, alvo, rot) {
 document.addEventListener('click', e => {
  const cf = e.target.closest('[data-cf]');
  if (cf) { CONTA_F = cf.dataset.cf; try { localStorage.setItem('qc_conta', CONTA_F); } catch (x) {} FILTRO = null; if (D) desenha(); return; }
- const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa],[data-cfg]'); if (!t) return;
+ const t = e.target.closest('[data-p],[data-e],[data-s],[data-l],[data-o],[data-f],[data-g],[data-vis],[data-per],[data-ga],[data-sa],[data-cfg],[data-ger]'); if (!t) return;
  const a = (D && D.autos || []).find(x => String(x.id) === (t.dataset.p || t.dataset.e || t.dataset.l || t.dataset.o || t.dataset.g));
  const vai = s => document.querySelector(`nav b[data-s=${s}]`).click();
  if (t.dataset.s) { ABA = t.dataset.s; document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b === t)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + ABA)); if (D) desenha(); }
@@ -400,6 +400,7 @@ document.addEventListener('click', e => {
   grAbre({id: -(+t.dataset.ga * 100 + GTF), nome: x.sym + ' · ' + GTF + ' min', estrategia: 'Todas as automações', sym: x.sym, tf: GTF}); }
  else if (t.dataset.sa) saAbre(+t.dataset.sa);
  else if (t.dataset.cfg) cfgAbre(+t.dataset.cfg);
+ else if (t.dataset.ger) gerTroca(((D && D.autos) || []).find(x => String(x.id) === t.dataset.ger));
  else if (t.dataset.g && a) grAbre(a);
  else if (t.dataset.o && a) { FILTRO = a.id; vai('ops'); }
  else if (t.dataset.f) { FILTRO = null; desenha(); }
@@ -410,6 +411,20 @@ document.addEventListener('click', e => {
  else if (t.dataset.p && a) confirma('Pausar "' + a.nome + '"?', 'Ela para de abrir operações novas. Uma posição aberta continua com o stop e o alvo.', () => pede('pausar', a.id, 'pausando…'));
  else if (t.dataset.e && a) confirma('Encerrar "' + a.nome + '"?', 'Pausa a automação e ZERA a posição dela a mercado' + (a.conta === 'MT5' ? ' na conta MT5 (ordem real).' : ' (Simulação).'), () => pede('zerar', a.id, 'encerrando…'));
 });
+// 🛡 no cartão: mostra se a automação está no gerente de risco e põe/tira pelo mesmo botão (pedido do usuário em 28/11/2026).
+// Vai como o pedido "config" com {gerente} (o servidor já aceita; a plataforma do PC 0.17.8 ou mais nova faz a troca).
+function gerTroca(a) {
+ if (!a || ESPERA['g' + a.id]) return; const on = !a.gerente;
+ confirma(on ? `Pôr "${a.nome}" no gerente de risco?` : `Tirar "${a.nome}" do gerente de risco?`,
+  on ? 'O stop e a meta do dia do gerente passam a valer para ela (soma com as outras do gerente). A quantidade não muda.'
+     : 'O stop e a meta do dia do gerente deixam de valer para ela. Os limites próprios dela continuam. A quantidade não muda.', async () => {
+  try {
+   const n = await rpc('qt_comandar2', {p_token: COD, p_acao: 'config', p_alvo: a.id, p_dados: {gerente: on}});
+   ESPERA['g' + a.id] = on ? 'entrando…' : 'saindo…'; ESPERA['gn' + a.id] = n; setTimeout(() => { delete ESPERA['g' + a.id]; if (D) desenha(); }, 15000);
+   toast('Pedido enviado ao PC…'); desenha(); setTimeout(atualiza, 2500);
+  } catch (e) { toast(/acao invalida|qt_comandar2|could not find|function/i.test(e.message || '') ? 'O servidor ainda não aceita este pedido: rode o docs/supabase_celular_config.sql no Supabase (uma vez).' : 'Não foi possível: ' + e.message); }
+ });
+}
 $('bTodas').onclick = () => confirma('Pausar todas?', 'Todas as automações param de abrir operações novas. As posições abertas continuam com stop e alvo.', () => pede('pausar_todas', null));
 // ---------- gráfico da automação (pedido do usuário em 9/11/2026) ----------
 // O celular pede "grafico"; a plataforma do PC monta os candles do dia, o indicador ORIGINAL da automação e as operações dela, e grava no
